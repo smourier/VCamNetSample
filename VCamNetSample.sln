@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34616.47
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VCamNetSample", "VCamNetSample\VCamNetSample.csproj", "{163D13CC-CA65-462A-A970-547C8E0676C9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCamNetSampleSource", "VCamNetSampleSource\VCamNetSampleSource.csproj", "{C5B924C9-B228-4A5A-8B68-12C77F27406E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{163D13CC-CA65-462A-A970-547C8E0676C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{163D13CC-CA65-462A-A970-547C8E0676C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{163D13CC-CA65-462A-A970-547C8E0676C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{163D13CC-CA65-462A-A970-547C8E0676C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5B924C9-B228-4A5A-8B68-12C77F27406E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5B924C9-B228-4A5A-8B68-12C77F27406E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5B924C9-B228-4A5A-8B68-12C77F27406E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5B924C9-B228-4A5A-8B68-12C77F27406E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9953105F-F679-4AC2-AAE6-39E5E0C7A68C}
+	EndGlobalSection
+EndGlobal

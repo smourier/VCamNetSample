@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWindowsForms>true</UseWindowsForms>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<ApplicationIcon>VCamSample.ico</ApplicationIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Include="..\VCamNetSampleSource\Shared.cs" Link="Shared.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="VCamSample.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="DirectN">
+	    <HintPath>..\..\DirectN\DirectN\DirectN\bin\Debug\DirectN.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Resources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Resources.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Update="Resources.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	</ItemGroup>
+
+</Project>
