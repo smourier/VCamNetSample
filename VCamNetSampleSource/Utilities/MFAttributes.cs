@@ -121,7 +121,6 @@ namespace VCamNetSampleSource.Utilities
 
         public virtual HRESULT SetItem(Guid guidKey, PropVariant value)
         {
-            value ??= new PropVariant();
             var hr = Attributes.Object.SetItem(guidKey, value);
             EventProvider.LogInfo($"({guidKey.GetMFName()}) {value} => {hr}", filePath: GetType().Name);
             return hr;
@@ -221,7 +220,7 @@ namespace VCamNetSampleSource.Utilities
         public virtual HRESULT CopyAllItems(IMFAttributes pDest)
         {
             var hr = Attributes.Object.CopyAllItems(pDest);
-            EventProvider.LogInfo($"{pDest} => {hr}", filePath: GetType().Name);
+            EventProvider.LogInfo($"{this.Trace()} > {pDest.Trace()} => {hr}", filePath: GetType().Name);
             return hr;
         }
 

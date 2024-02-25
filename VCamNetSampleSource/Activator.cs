@@ -10,9 +10,14 @@ namespace VCamNetSampleSource
     {
         public Activator()
         {
-            EventProvider.LogInfo("ctor");
-            SetUINT32(MFConstants.MF_VIRTUALCAMERA_PROVIDE_ASSOCIATED_CAMERA_SOURCES, 1).ThrowOnError();
-            SetGUID(MFConstants.MFT_TRANSFORM_CLSID_Attribute, GetType().GUID).ThrowOnError();
+            EventProvider.LogInfo($"ctor commandLine:{Environment.CommandLine}");
+            SetDefaultAttributes(this);
+        }
+
+        private static void SetDefaultAttributes(IMFAttributes attributes)
+        {
+            attributes.SetUINT32(MFConstants.MF_VIRTUALCAMERA_PROVIDE_ASSOCIATED_CAMERA_SOURCES, 1).ThrowOnError();
+            attributes.SetGUID(MFConstants.MFT_TRANSFORM_CLSID_Attribute, typeof(Activator).GUID).ThrowOnError();
         }
 
         public HRESULT ActivateObject(Guid riid, out nint ppv)
@@ -22,8 +27,9 @@ namespace VCamNetSampleSource
                 EventProvider.LogInfo($"{riid}");
                 if (riid == typeof(IMFMediaSourceEx).GUID || riid == typeof(IMFMediaSource).GUID)
                 {
-                    var source = new MediaSource(this);
-                    var unk = Marshal.GetIUnknownForObject(new MediaSource(this));
+                    var source = new MediaSource();
+                    SetDefaultAttributes(source);
+                    var unk = Marshal.GetIUnknownForObject(source);
                     var hr = Marshal.QueryInterface(unk, ref riid, out ppv);
                     Marshal.Release(unk);
                     return hr;

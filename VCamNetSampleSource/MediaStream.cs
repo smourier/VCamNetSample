@@ -85,7 +85,10 @@ namespace VCamNetSampleSource
         public HRESULT Start(IMFMediaType? type)
         {
             if (_queue == null || _allocator == null)
+            {
+                EventProvider.LogInfo($"MF_E_SHUTDOWN");
                 return HRESULTS.MF_E_SHUTDOWN;
+            }
 
             if (type != null)
             {
@@ -106,7 +109,10 @@ namespace VCamNetSampleSource
         public HRESULT Stop()
         {
             if (_queue == null || _allocator == null)
+            {
+                EventProvider.LogInfo($"MF_E_SHUTDOWN");
                 return HRESULTS.MF_E_SHUTDOWN;
+            }
 
             _allocator.Object.UninitializeSampleAllocator();
             _queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEStreamStopped, Guid.Empty, HRESULTS.S_OK, null).ThrowOnError();
@@ -118,10 +124,16 @@ namespace VCamNetSampleSource
         public HRESULT SetAllocator(object allocator)
         {
             if (allocator == null)
+            {
+                EventProvider.LogInfo($"E_POINTER");
                 return HRESULTS.E_POINTER;
+            }
 
             if (allocator is not IMFVideoSampleAllocatorEx aex)
+            {
+                EventProvider.LogInfo($"E_NOINTERFACE");
                 return HRESULTS.E_NOINTERFACE;
+            }
 
             _allocator = new ComObject<IMFVideoSampleAllocatorEx>(aex);
             return HRESULTS.S_OK;
@@ -130,6 +142,7 @@ namespace VCamNetSampleSource
         public HRESULT Set3DManager(object manager)
         {
             var hr = _allocator?.Object.SetDirectXManager(manager) ?? HRESULTS.E_FAIL;
+            EventProvider.LogInfo($" => {hr}");
             return hr;
         }
 
@@ -143,62 +156,102 @@ namespace VCamNetSampleSource
         public HRESULT GetEvent(uint dwFlags, out IMFMediaEvent ppEvent)
         {
             EventProvider.LogInfo($"dwFlags:{dwFlags}");
-            lock (_lock)
+            try
             {
-                if (_queue == null)
+                lock (_lock)
                 {
-                    ppEvent = null!;
-                    return HRESULTS.MF_E_SHUTDOWN;
-                }
+                    if (_queue == null)
+                    {
+                        ppEvent = null!;
+                        EventProvider.LogInfo($"MF_E_SHUTDOWN");
+                        return HRESULTS.MF_E_SHUTDOWN;
+                    }
 
-                var hr = _queue.Object.GetEvent(dwFlags, out ppEvent);
-                EventProvider.LogInfo($" => {hr}");
-                return hr;
+                    var hr = _queue.Object.GetEvent(dwFlags, out ppEvent);
+                    EventProvider.LogInfo($" => {hr}");
+                    return hr;
+                }
+            }
+            catch (Exception e)
+            {
+                EventProvider.LogError(e.ToString());
+                throw;
             }
         }
 
         public HRESULT BeginGetEvent(IMFAsyncCallback pCallback, object punkState)
         {
             EventProvider.LogInfo($"pCallback:{pCallback} punkState:{punkState}");
-            lock (_lock)
+            try
             {
-                if (_queue == null)
-                    return HRESULTS.MF_E_SHUTDOWN;
+                lock (_lock)
+                {
+                    if (_queue == null)
+                    {
+                        EventProvider.LogInfo($"MF_E_SHUTDOWN");
+                        return HRESULTS.MF_E_SHUTDOWN;
+                    }
 
-                var hr = _queue.Object.BeginGetEvent(pCallback, punkState);
-                EventProvider.LogInfo($" => {hr}");
-                return hr;
+                    var hr = _queue.Object.BeginGetEvent(pCallback, punkState);
+                    EventProvider.LogInfo($" => {hr}");
+                    return hr;
+                }
+            }
+            catch (Exception e)
+            {
+                EventProvider.LogError(e.ToString());
+                throw;
             }
         }
 
         public HRESULT EndGetEvent(IMFAsyncResult pResult, out IMFMediaEvent ppEvent)
         {
             EventProvider.LogInfo($"pResult:{pResult}");
-            lock (_lock)
+            try
             {
-                if (_queue == null)
+                lock (_lock)
                 {
-                    ppEvent = null!;
-                    return HRESULTS.MF_E_SHUTDOWN;
-                }
+                    if (_queue == null)
+                    {
+                        ppEvent = null!;
+                        EventProvider.LogInfo($"MF_E_SHUTDOWN");
+                        return HRESULTS.MF_E_SHUTDOWN;
+                    }
 
-                var hr = _queue.Object.EndGetEvent(pResult, out ppEvent);
-                EventProvider.LogInfo($" => {hr}");
-                return hr;
+                    var hr = _queue.Object.EndGetEvent(pResult, out ppEvent);
+                    EventProvider.LogInfo($" => {hr}");
+                    return hr;
+                }
+            }
+            catch (Exception e)
+            {
+                EventProvider.LogError(e.ToString());
+                throw;
             }
         }
 
         public HRESULT QueueEvent(uint met, Guid guidExtendedType, HRESULT hrStatus, PropVariant pvValue)
         {
             EventProvider.LogInfo($"met:{met}");
-            lock (_lock)
+            try
             {
-                if (_queue == null)
-                    return HRESULTS.MF_E_SHUTDOWN;
+                lock (_lock)
+                {
+                    if (_queue == null)
+                    {
+                        EventProvider.LogInfo($"MF_E_SHUTDOWN");
+                        return HRESULTS.MF_E_SHUTDOWN;
+                    }
 
-                var hr = _queue.Object.QueueEventParamVar(met, guidExtendedType, hrStatus, pvValue);
-                EventProvider.LogInfo($" => {hr}");
-                return hr;
+                    var hr = _queue.Object.QueueEventParamVar(met, guidExtendedType, hrStatus, pvValue);
+                    EventProvider.LogInfo($" => {hr}");
+                    return hr;
+                }
+            }
+            catch (Exception e)
+            {
+                EventProvider.LogError(e.ToString());
+                throw;
             }
         }
 
@@ -207,18 +260,42 @@ namespace VCamNetSampleSource
             EventProvider.LogInfo();
             lock (_lock)
             {
+                if (_source == null)
+                {
+                    ppMediaSource = null!;
+                    return HRESULTS.MF_E_SHUTDOWN;
+                }
+
                 ppMediaSource = _source;
-                return _source != null ? HRESULTS.S_OK : HRESULTS.MF_E_SHUTDOWN;
+                var hr = HRESULTS.S_OK;
+                EventProvider.LogInfo($" => {hr}");
+                return hr;
             }
         }
 
         public HRESULT GetStreamDescriptor(out IMFStreamDescriptor ppStreamDescriptor)
         {
             EventProvider.LogInfo();
-            lock (_lock)
+            try
             {
-                ppStreamDescriptor = _descriptor?.Object!;
-                return _descriptor != null ? HRESULTS.S_OK : HRESULTS.MF_E_SHUTDOWN;
+                lock (_lock)
+                {
+                    if (_descriptor == null)
+                    {
+                        ppStreamDescriptor = null!;
+                        return HRESULTS.MF_E_SHUTDOWN;
+                    }
+
+                    ppStreamDescriptor = _descriptor.Object;
+                    var hr = HRESULTS.S_OK;
+                    EventProvider.LogInfo($" => {hr}");
+                    return hr;
+                }
+            }
+            catch (Exception e)
+            {
+                EventProvider.LogError(e.ToString());
+                throw;
             }
         }
 
@@ -230,53 +307,67 @@ namespace VCamNetSampleSource
 
         public HRESULT SetStreamState(_MF_STREAM_STATE value)
         {
-            if (_state != value)
+            EventProvider.LogInfo($"value:{value}");
+            try
             {
-                switch (value)
+                if (_state != value)
                 {
-                    case _MF_STREAM_STATE.MF_STREAM_STATE_STOPPED:
-                        return Stop();
+                    switch (value)
+                    {
+                        case _MF_STREAM_STATE.MF_STREAM_STATE_STOPPED:
+                            return Stop();
 
-                    case _MF_STREAM_STATE.MF_STREAM_STATE_PAUSED:
-                        if (_state != _MF_STREAM_STATE.MF_STREAM_STATE_RUNNING)
+                        case _MF_STREAM_STATE.MF_STREAM_STATE_PAUSED:
+                            if (_state != _MF_STREAM_STATE.MF_STREAM_STATE_RUNNING)
+                            {
+                                EventProvider.LogInfo($"MF_E_INVALID_STATE_TRANSITION");
+                                return HRESULTS.MF_E_INVALID_STATE_TRANSITION;
+                            }
+
+                            _state = value;
+                            break;
+
+                        case _MF_STREAM_STATE.MF_STREAM_STATE_RUNNING:
+                            return Start(null);
+
+                        default:
+                            EventProvider.LogInfo($"MF_E_INVALID_STATE_TRANSITION");
                             return HRESULTS.MF_E_INVALID_STATE_TRANSITION;
-
-                        _state = value;
-                        break;
-
-                    case _MF_STREAM_STATE.MF_STREAM_STATE_RUNNING:
-                        return Start(null);
-
-                    default:
-                        return HRESULTS.MF_E_INVALID_STATE_TRANSITION;
+                    }
                 }
+                return HRESULTS.S_OK;
             }
-            return HRESULTS.S_OK;
+            catch (Exception e)
+            {
+                EventProvider.LogError(e.ToString());
+                throw;
+            }
         }
 
         public HRESULT GetStreamState(out _MF_STREAM_STATE value)
         {
             value = _state;
+            EventProvider.LogInfo($"value:{value}");
             return HRESULTS.S_OK;
         }
 
-        public HRESULT KsProperty(ref KSIDENTIFIER Property, uint PropertyLength, out nint PropertyData, uint DataLength, out uint BytesReturned)
+        public HRESULT KsProperty(ref KSIDENTIFIER Property, uint PropertyLength, nint PropertyData, uint DataLength, out uint BytesReturned)
         {
-            PropertyData = 0;
+            EventProvider.LogInfo($"Property:{Property.GetMFName()} PropertyLength:{PropertyLength} DataLength:{DataLength}");
             BytesReturned = 0;
             return HRESULT.FromWin32(Utilities.Constants.ERROR_SET_NOT_FOUND);
         }
 
-        public HRESULT KsMethod(ref KSIDENTIFIER Method, uint MethodLength, out nint MethodData, uint DataLength, out uint BytesReturned)
+        public HRESULT KsMethod(ref KSIDENTIFIER Method, uint MethodLength, nint MethodData, uint DataLength, out uint BytesReturned)
         {
-            MethodData = 0;
+            EventProvider.LogInfo($"Method:{Method.GetMFName()} PropertyLength:{MethodLength} DataLength:{DataLength}");
             BytesReturned = 0;
             return HRESULT.FromWin32(Utilities.Constants.ERROR_SET_NOT_FOUND);
         }
 
-        public HRESULT KsEvent(ref KSIDENTIFIER Event, uint EventLength, out nint EventData, uint DataLength, out uint BytesReturned)
+        public HRESULT KsEvent(ref KSIDENTIFIER Event, uint EventLength, nint EventData, uint DataLength, out uint BytesReturned)
         {
-            EventData = 0;
+            EventProvider.LogInfo($"Event:{Event.GetMFName()} PropertyLength:{EventLength} DataLength:{DataLength}");
             BytesReturned = 0;
             return HRESULT.FromWin32(Utilities.Constants.ERROR_SET_NOT_FOUND);
         }
