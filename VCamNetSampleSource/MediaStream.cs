@@ -6,18 +6,19 @@ using VCamNetSampleSource.Utilities;
 
 namespace VCamNetSampleSource
 {
-    public class MediaStream : MFAttributes, IMFMediaStream, IDisposable
+    public class MediaStream : MFAttributes, IMFMediaStream2, IKsControl
     {
         public const int NUM_IMAGE_COLS = 1280;
         public const int NUM_IMAGE_ROWS = 960;
 
         private readonly object _lock = new();
         private readonly uint _index;
-        private bool _disposedValue;
+        private readonly MediaSource _source;
         private IComObject<IMFMediaEventQueue>? _queue;
         private IComObject<IMFStreamDescriptor>? _descriptor;
         private IComObject<IMFVideoSampleAllocatorEx>? _allocator;
-        private readonly MediaSource _source;
+        private _MF_STREAM_STATE _state;
+        private Guid _format;
 
         public MediaStream(MediaSource source, uint index)
         {
@@ -81,6 +82,39 @@ namespace VCamNetSampleSource
             }
         }
 
+        public HRESULT Start(IMFMediaType? type)
+        {
+            if (_queue == null || _allocator == null)
+                return HRESULTS.MF_E_SHUTDOWN;
+
+            if (type != null)
+            {
+                type.GetGUID(MFConstants.MF_MT_SUBTYPE, out _format).ThrowOnError();
+                EventProvider.LogInfo("Format: ", _format.GetMFName());
+            }
+
+            // at this point, set D3D manager may have not been called
+            // so we want to create a D2D1 renter target anyway
+            //_generator.EnsureRenderTarget(NUM_IMAGE_COLS, NUM_IMAGE_ROWS));
+
+            _allocator.Object.InitializeSampleAllocator(10, type).ThrowOnError();
+            _queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEStreamStarted, Guid.Empty, HRESULTS.S_OK, null).ThrowOnError();
+            _state = _MF_STREAM_STATE.MF_STREAM_STATE_RUNNING;
+            return HRESULTS.S_OK;
+        }
+
+        public HRESULT Stop()
+        {
+            if (_queue == null || _allocator == null)
+                return HRESULTS.MF_E_SHUTDOWN;
+
+            _allocator.Object.UninitializeSampleAllocator();
+            _queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEStreamStopped, Guid.Empty, HRESULTS.S_OK, null).ThrowOnError();
+            _state = _MF_STREAM_STATE.MF_STREAM_STATE_STOPPED;
+            return HRESULTS.S_OK;
+        }
+
+        public MFSampleAllocatorUsage GetAllocatorUsage() => MFSampleAllocatorUsage.MFSampleAllocatorUsage_UsesProvidedAllocator;
         public HRESULT SetAllocator(object allocator)
         {
             if (allocator == null)
@@ -93,6 +127,12 @@ namespace VCamNetSampleSource
             return HRESULTS.S_OK;
         }
 
+        public HRESULT Set3DManager(object manager)
+        {
+            var hr = _allocator?.Object.SetDirectXManager(manager) ?? HRESULTS.E_FAIL;
+            return hr;
+        }
+
         public CustomQueryInterfaceResult GetInterface(ref Guid iid, out nint ppv)
         {
             EventProvider.LogInfo($"iid{iid:B}");
@@ -103,25 +143,63 @@ namespace VCamNetSampleSource
         public HRESULT GetEvent(uint dwFlags, out IMFMediaEvent ppEvent)
         {
             EventProvider.LogInfo($"dwFlags:{dwFlags}");
-            throw new NotImplementedException();
+            lock (_lock)
+            {
+                if (_queue == null)
+                {
+                    ppEvent = null!;
+                    return HRESULTS.MF_E_SHUTDOWN;
+                }
+
+                var hr = _queue.Object.GetEvent(dwFlags, out ppEvent);
+                EventProvider.LogInfo($" => {hr}");
+                return hr;
+            }
         }
 
         public HRESULT BeginGetEvent(IMFAsyncCallback pCallback, object punkState)
         {
             EventProvider.LogInfo($"pCallback:{pCallback} punkState:{punkState}");
-            throw new NotImplementedException();
+            lock (_lock)
+            {
+                if (_queue == null)
+                    return HRESULTS.MF_E_SHUTDOWN;
+
+                var hr = _queue.Object.BeginGetEvent(pCallback, punkState);
+                EventProvider.LogInfo($" => {hr}");
+                return hr;
+            }
         }
 
         public HRESULT EndGetEvent(IMFAsyncResult pResult, out IMFMediaEvent ppEvent)
         {
             EventProvider.LogInfo($"pResult:{pResult}");
-            throw new NotImplementedException();
+            lock (_lock)
+            {
+                if (_queue == null)
+                {
+                    ppEvent = null!;
+                    return HRESULTS.MF_E_SHUTDOWN;
+                }
+
+                var hr = _queue.Object.EndGetEvent(pResult, out ppEvent);
+                EventProvider.LogInfo($" => {hr}");
+                return hr;
+            }
         }
 
         public HRESULT QueueEvent(uint met, Guid guidExtendedType, HRESULT hrStatus, PropVariant pvValue)
         {
-            EventProvider.LogInfo($"met:{met} guidExtendedType:{guidExtendedType} hrStatus:{hrStatus} pvValue:{pvValue}");
-            throw new NotImplementedException();
+            EventProvider.LogInfo($"met:{met}");
+            lock (_lock)
+            {
+                if (_queue == null)
+                    return HRESULTS.MF_E_SHUTDOWN;
+
+                var hr = _queue.Object.QueueEventParamVar(met, guidExtendedType, hrStatus, pvValue);
+                EventProvider.LogInfo($" => {hr}");
+                return hr;
+            }
         }
 
         public HRESULT GetMediaSource(out IMFMediaSource ppMediaSource)
@@ -150,36 +228,65 @@ namespace VCamNetSampleSource
             throw new NotImplementedException();
         }
 
-        protected virtual void Dispose(bool disposing)
+        public HRESULT SetStreamState(_MF_STREAM_STATE value)
         {
-            if (!_disposedValue)
+            if (_state != value)
             {
-                if (disposing)
+                switch (value)
                 {
-                    // dispose managed state (managed objects)
-                    Interlocked.Exchange(ref _descriptor!, null)?.Dispose();
-                    Interlocked.Exchange(ref _queue!, null)?.Dispose();
-                    Interlocked.Exchange(ref _allocator!, null)?.Dispose();
-                }
+                    case _MF_STREAM_STATE.MF_STREAM_STATE_STOPPED:
+                        return Stop();
 
-                // free unmanaged resources (unmanaged objects) and override finalizer
-                // set large fields to null
-                _disposedValue = true;
+                    case _MF_STREAM_STATE.MF_STREAM_STATE_PAUSED:
+                        if (_state != _MF_STREAM_STATE.MF_STREAM_STATE_RUNNING)
+                            return HRESULTS.MF_E_INVALID_STATE_TRANSITION;
+
+                        _state = value;
+                        break;
+
+                    case _MF_STREAM_STATE.MF_STREAM_STATE_RUNNING:
+                        return Start(null);
+
+                    default:
+                        return HRESULTS.MF_E_INVALID_STATE_TRANSITION;
+                }
             }
+            return HRESULTS.S_OK;
         }
 
-        // override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~MediaStream()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
-
-        public void Dispose()
+        public HRESULT GetStreamState(out _MF_STREAM_STATE value)
         {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
+            value = _state;
+            return HRESULTS.S_OK;
+        }
+
+        public HRESULT KsProperty(ref KSIDENTIFIER Property, uint PropertyLength, out nint PropertyData, uint DataLength, out uint BytesReturned)
+        {
+            PropertyData = 0;
+            BytesReturned = 0;
+            return HRESULT.FromWin32(Utilities.Constants.ERROR_SET_NOT_FOUND);
+        }
+
+        public HRESULT KsMethod(ref KSIDENTIFIER Method, uint MethodLength, out nint MethodData, uint DataLength, out uint BytesReturned)
+        {
+            MethodData = 0;
+            BytesReturned = 0;
+            return HRESULT.FromWin32(Utilities.Constants.ERROR_SET_NOT_FOUND);
+        }
+
+        public HRESULT KsEvent(ref KSIDENTIFIER Event, uint EventLength, out nint EventData, uint DataLength, out uint BytesReturned)
+        {
+            EventData = 0;
+            BytesReturned = 0;
+            return HRESULT.FromWin32(Utilities.Constants.ERROR_SET_NOT_FOUND);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            Interlocked.Exchange(ref _descriptor!, null)?.Dispose();
+            Interlocked.Exchange(ref _queue!, null)?.Dispose();
+            Interlocked.Exchange(ref _allocator!, null)?.Dispose();
+            base.Dispose(disposing);
         }
     }
 }

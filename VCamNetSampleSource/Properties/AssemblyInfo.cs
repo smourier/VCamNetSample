@@ -15,4 +15,4 @@ using System.Runtime.Versioning;
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
 [assembly: Guid("8079cbe0-b9f7-45bc-88f3-2bd01831cd94")]
-[assembly: SupportedOSPlatform("windows")]
+[assembly: SupportedOSPlatform("windows10.0.22621.0")]
