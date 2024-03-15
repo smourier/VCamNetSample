@@ -36,10 +36,11 @@ namespace VCamNetSample
                 "{" + Shared.CLSID_VCamNet + "}",
                 null,
                 0,
-                out var _camera);
+                out var camera);
             if (hr.IsSuccess)
             {
-                hr = _camera.Start(null);
+                _camera = new ComObject<IMFVirtualCamera>(camera);
+                hr = _camera.Object.Start(null);
             }
 
             if (hr.IsError)
@@ -56,7 +57,10 @@ namespace VCamNetSample
             }
             td.Show(Handle);
 
-            _camera.Remove();
+            if (_camera != null)
+            {
+                hr = _camera.Object.Remove();
+            }
             MFFunctions.MFShutdown();
             Close();
         }

@@ -29,10 +29,9 @@ namespace VCamNetSampleSource
                 {
                     var source = new MediaSource();
                     SetDefaultAttributes(source);
-                    var unk = Marshal.GetIUnknownForObject(source);
-                    var hr = Marshal.QueryInterface(unk, ref riid, out ppv);
-                    Marshal.Release(unk);
-                    return hr;
+                    ppv = ComObject.QueryObjectInterface(source, riid, false);
+                    if (ppv != IntPtr.Zero)
+                        return HRESULTS.S_OK;
                 }
 
                 ppv = 0;

@@ -5,7 +5,9 @@ VisualStudioVersion = 17.9.34616.47
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VCamNetSample", "VCamNetSample\VCamNetSample.csproj", "{163D13CC-CA65-462A-A970-547C8E0676C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCamNetSampleSource", "VCamNetSampleSource\VCamNetSampleSource.csproj", "{C5B924C9-B228-4A5A-8B68-12C77F27406E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VCamNetSampleSource", "VCamNetSampleSource\VCamNetSampleSource.csproj", "{C5B924C9-B228-4A5A-8B68-12C77F27406E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DebuggerAttach", "DebuggerAttach\DebuggerAttach.csproj", "{079AC6DC-1D07-47BA-87E8-3AE4108CAD90}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{C5B924C9-B228-4A5A-8B68-12C77F27406E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C5B924C9-B228-4A5A-8B68-12C77F27406E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C5B924C9-B228-4A5A-8B68-12C77F27406E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{079AC6DC-1D07-47BA-87E8-3AE4108CAD90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{079AC6DC-1D07-47BA-87E8-3AE4108CAD90}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{079AC6DC-1D07-47BA-87E8-3AE4108CAD90}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{079AC6DC-1D07-47BA-87E8-3AE4108CAD90}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
