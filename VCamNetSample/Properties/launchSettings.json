@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "VCamNetSample": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

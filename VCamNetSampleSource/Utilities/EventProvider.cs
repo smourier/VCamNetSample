@@ -5,10 +5,11 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using DirectN;
 
 namespace VCamNetSampleSource.Utilities
 {
-    public sealed class EventProvider : IDisposable
+    public sealed class EventProvider : ILogger, IDisposable
     {
         // we don't use OutputDebugString because it's 100% crap, truncating, slow, etc.
         // use WpfTraceSpy https://github.com/smourier/TraceSpy to see these traces (configure an ETW Provider with guid set to 964d4572-adb9-4f3a-8170-fcbecec27467)
@@ -39,6 +40,7 @@ namespace VCamNetSampleSource.Utilities
             }
         }
 
+        void ILogger.Log(TraceLevel level, string message, string methodName) => Log(level, message, methodName, null);
         public static void LogError(string? message = null, [CallerMemberName] string? methodName = null, [CallerFilePath] string? filePath = null) => Log(TraceLevel.Error, message, methodName, filePath);
         public static void LogWarning(string? message = null, [CallerMemberName] string? methodName = null, [CallerFilePath] string? filePath = null) => Log(TraceLevel.Warning, message, methodName, filePath);
         public static void LogInfo(string? message = null, [CallerMemberName] string? methodName = null, [CallerFilePath] string? filePath = null) => Log(TraceLevel.Info, message, methodName, filePath);

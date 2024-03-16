@@ -11,7 +11,7 @@ namespace VCamNetSampleSource
     {
         private readonly object _lock = new();
         private readonly MediaStream[] _streams;
-        private IComObject<IMFMediaEventQueue>? _queue;
+        private readonly IComObject<IMFMediaEventQueue>? _queue;
         private IComObject<IMFPresentationDescriptor>? _presentationDescriptor;
 
         public MediaSource()
@@ -295,6 +295,7 @@ namespace VCamNetSampleSource
 
                     using var pv = new PropVariant(time);
                     _queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MESourceStopped, Guid.Empty, HRESULTS.S_OK, pv).ThrowOnError();
+                    pv.Dispose();
                     return HRESULTS.S_OK;
                 }
             }

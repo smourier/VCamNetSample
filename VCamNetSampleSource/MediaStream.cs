@@ -318,29 +318,43 @@ namespace VCamNetSampleSource
                     if (_allocator == null || _queue == null)
                         return HRESULTS.MF_E_SHUTDOWN;
 
-                    _allocator.Object.AllocateSample(out var sample).ThrowOnError();
-                    sample.SetSampleTime(Functions.MFGetSystemTime()).ThrowOnError();
-                    sample.SetSampleDuration(333333).ThrowOnError();
-
-                    _generator.Generate(sample, _format, out var outSample).ThrowOnError();
-                    var os = outSample ?? sample;
-
-                    if (token != null)
+                    var h = _allocator.Object.AllocateSample(out var sample);
+                    if (h == HRESULTS.MF_E_SAMPLEALLOCATOR_EMPTY)
                     {
-                        os.SetUnknown(MFConstants.MFSampleExtension_Token, token).ThrowOnError();
+                        EventProvider.LogInfo("MF_E_SAMPLEALLOCATOR_EMPTY");
+                        return h;
                     }
 
-                    _queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEMediaSample, Guid.Empty, HRESULTS.S_OK, os).ThrowOnError();
-
-                    // to avoid exhausting allocator
-                    Marshal.ReleaseComObject(sample);
-                    if (outSample != null)
+                    h.ThrowOnError();
+                    using (var input = new ComObject<IMFSample>(sample))
                     {
-                        Marshal.ReleaseComObject(outSample);
+                        sample.SetSampleTime(Functions.MFGetSystemTime()).ThrowOnError();
+                        sample.SetSampleDuration(333333).ThrowOnError();
+
+                        using (var output = _generator.Generate(input, _format))
+                        {
+                            if (token != null)
+                            {
+                                output.Object.SetUnknown(MFConstants.MFSampleExtension_Token, token).ThrowOnError();
+                            }
+
+                            _queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEMediaSample, Guid.Empty, HRESULTS.S_OK, output.Object).ThrowOnError();
+
+                            //Marshal.GetIUnknownForObject(osm.Object);
+                            //Marshal.GetIUnknownForObject(osm.Object);
+
+                            //_queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEMediaSample, Guid.Empty, HRESULTS.S_OK, sample).ThrowOnError();
+                            //EventProvider.LogInfo($"refI: {ComObject.GetRefCount(sample)}");
+                            //EventProvider.LogInfo($"refO: {ComObject.GetRefCount(output)}");
+                            //if (token != null)
+                            //{
+                            //    sample.SetUnknown(MFConstants.MFSampleExtension_Token, token).ThrowOnError();
+                            //}
+                        }
                     }
 
                     var hr = HRESULTS.S_OK;
-                    //EventProvider.LogInfo($" => {hr}");
+                    EventProvider.LogInfo($" tok {token} => {hr}");
                     return hr;
                 }
             }
@@ -420,6 +434,7 @@ namespace VCamNetSampleSource
 
         protected override void Dispose(bool disposing)
         {
+            EventProvider.LogInfo();
             Interlocked.Exchange(ref _descriptor!, null)?.Dispose();
             Interlocked.Exchange(ref _queue!, null)?.Dispose();
             Interlocked.Exchange(ref _allocator!, null)?.Dispose();

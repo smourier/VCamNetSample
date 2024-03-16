@@ -9,6 +9,13 @@ namespace DebuggerAttach
 {
     internal class Program
     {
+        //
+        // note 1: for this to have a chance to work, since Frame Server runs as LOCAL SERVICE,
+        // you must run Visual Studio as Administrator and this program as Administrator too
+        //
+        // note 2: you can configure Frame Server to stay alive if you set the key value NeverShutdown to 1 in
+        // HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Media Foundation\FrameServer
+        //
         static void Main()
         {
             var name = "VCamNetSample";
@@ -19,7 +26,7 @@ namespace DebuggerAttach
                 return;
             }
 
-            var frameServer = EnumerateLocalProcesses((object)vs).FirstOrDefault(IsFrameServer);
+            var frameServer = GetFrameServerProcess(vs);
             if (frameServer == null)
             {
                 Console.WriteLine($"Camera Frame Server was not found. You should retry...");
@@ -29,25 +36,25 @@ namespace DebuggerAttach
             frameServer.Attach();
         }
 
-        static bool IsFrameServer(IProcess4 process4) => IsSvcHost(process4, args => args.Contains("-k") && args.Contains("Camera") && args.Contains("-s") && args.Contains("FrameServer"));
-        static bool IsCameraMonitor(IProcess4 process4) => IsSvcHost(process4, args => args.Contains("-k") && args.Contains("CameraMonitor"));
-        static bool IsSvcHost(IProcess4 process4, Predicate<IReadOnlyList<string>> commandLinePredicate)
+        public static void KillFrameServer(object vsInstance, bool waitForBreakOrEnd = false) => GetFrameServerProcess(vsInstance)?.Terminate(waitForBreakOrEnd);
+        public static IProcess4? GetFrameServerProcess(object vsInstance) => EnumerateLocalProcesses(vsInstance).FirstOrDefault(IsFrameServer);
+        public static bool IsFrameServer(IProcess4 process4) => IsSvcHost(process4, args => args.Contains("-k") && args.Contains("Camera") && args.Contains("-s") && args.Contains("FrameServer"));
+        public static bool IsCameraMonitor(IProcess4 process4) => IsSvcHost(process4, args => args.Contains("-k") && args.Contains("CameraMonitor"));
+        public static bool IsSvcHost(IProcess4 process4) => IsSvcHost(process4, null);
+        public static bool IsSvcHost(IProcess4 process4, Predicate<IReadOnlyList<string>>? commandLinePredicate = null)
         {
-            ArgumentNullException.ThrowIfNull(commandLinePredicate);
             var commandLine = process4.CommandLine;
             if (string.IsNullOrWhiteSpace(commandLine))
                 return false;
 
             var svchost = Path.Combine(Environment.SystemDirectory, "svchost.exe");
             var args = CommandLineToArguments(commandLine);
-            if (!args.Contains(svchost))
+            if (!args.Contains(svchost, StringComparer.OrdinalIgnoreCase))
                 return false;
 
-            foreach (var arg in args)
-            {
-                Console.WriteLine(arg);
-            }
-            Console.WriteLine();
+            if (commandLinePredicate == null)
+                return true;
+
             return commandLinePredicate(args);
         }
 
@@ -68,19 +75,22 @@ namespace DebuggerAttach
             void Attach();
 
             [DispId(2)]
-            void Detach(bool WaitForBreakOrEnd = true);
+            void Detach(bool waitForBreakOrEnd = true);
 
             [DispId(3)]
-            void Break(bool WaitForBreakMode = true);
+            void Break(bool waitForBreakMode = true);
 
             [DispId(4)]
-            void Terminate(bool WaitForBreakOrEnd = true);
+            void Terminate(bool waitForBreakOrEnd = true);
 
             [DispId(0)]
             string Name { get; }
 
             [DispId(100)]
             int ProcessID { get; }
+
+            [DispId(1105)]
+            string UserName { get; }
 
             [DispId(2102)]
             string CommandLine { get; }

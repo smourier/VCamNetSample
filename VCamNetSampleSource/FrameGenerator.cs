@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using DirectN;
 using VCamNetSampleSource.Utilities;
@@ -7,6 +8,8 @@ namespace VCamNetSampleSource
 {
     public class FrameGenerator : IDisposable
     {
+        public const float DIVISOR = 20;
+
         private bool _disposedValue;
         private uint _width;
         private uint _height;
@@ -17,6 +20,7 @@ namespace VCamNetSampleSource
         private IComObject<ID3D11Texture2D>? _texture;
         private IComObject<ID2D1RenderTarget>? _renderTarget;
         private IComObject<ID2D1SolidColorBrush>? _whiteBrush;
+        private IComObject<ID2D1SolidColorBrush>[]? _blockBrushes;
         private IComObject<IDWriteTextFormat>? _textFormat;
         private IComObject<IDWriteFactory>? _dwrite;
         private IComObject<IMFTransform>? _converter;
@@ -36,8 +40,22 @@ namespace VCamNetSampleSource
             _textFormat = _dwrite.CreateTextFormat("Segoe UI", 40);
             _textFormat.Object.SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT.DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             _textFormat.Object.SetTextAlignment(DWRITE_TEXT_ALIGNMENT.DWRITE_TEXT_ALIGNMENT_CENTER);
+
+            // colors for HSL blocks
+            var brushes = new List<IComObject<ID2D1SolidColorBrush>>();
+            for (var i = 0; i < width / DIVISOR; i++)
+            {
+                for (var j = 0; j < height / DIVISOR; j++)
+                {
+                    var color = Utilities.Extensions.HSL2RGB(i / (height / DIVISOR), 1, (j / (width / DIVISOR)));
+                    brushes.Add(_renderTarget.CreateSolidColorBrush(color));
+                }
+            }
+
+            _blockBrushes = [.. brushes];
             _width = width;
             _height = height;
+            EventProvider.LogInfo($"width {_width} height {_height} Blocks :{_blockBrushes.Length}");
 
             return HRESULTS.S_OK;
         }
@@ -94,6 +112,7 @@ namespace VCamNetSampleSource
 
             // create GPU RGB => NV12 converter
             _converter = new ComObject<IMFTransform>((IMFTransform)System.Activator.CreateInstance(Type.GetTypeFromCLSID(MFConstants.CLSID_VideoProcessorMFT)!)!);
+            //_converter.GetAttributes().Set(MFConstants.MF_XVP_DISABLE_FRC, true);
             SetConverterTypes(width, height);
 
             // make sure the video processor works on GPU
@@ -140,35 +159,31 @@ namespace VCamNetSampleSource
             }
         }
 
-        public HRESULT Generate(IMFSample sample, Guid format, out IMFSample? outSample)
+        public IComObject<IMFSample> Generate(IComObject<IMFSample> sample, Guid format)
         {
             try
             {
-                if (sample == null)
-                {
-                    outSample = null;
-                    return HRESULTS.E_POINTER;
-                }
+                ArgumentNullException.ThrowIfNull(sample);
+                IComObject<IMFSample>? outSample;
 
                 // render something on image common to CPU & GPU
-                if (_renderTarget != null && _textFormat != null && _dwrite != null && _whiteBrush != null)
+                if (_renderTarget != null && _textFormat != null && _dwrite != null && _whiteBrush != null && _blockBrushes != null)
                 {
                     _renderTarget.BeginDraw();
                     _renderTarget.Clear(new _D3DCOLORVALUE(1, 0, 0, 1));
 
                     // draw some HSL blocks
-                    const float divisor = 20;
-                    for (uint i = 0; i < _width / divisor; i++)
+                    var k = 0;
+                    for (uint i = 0; i < _width / DIVISOR; i++)
                     {
-                        for (uint j = 0; j < _height / divisor; j++)
+                        for (uint j = 0; j < _height / DIVISOR; j++)
                         {
-                            var color = Utilities.Extensions.HSL2RGB(i / (_height / divisor), 1, (j / (_width / divisor)));
-                            using var brush = _renderTarget.CreateSolidColorBrush(color);
-                            _renderTarget.FillRectangle(new D2D_RECT_F(i * divisor, j * divisor, (i + 1) * divisor, (j + 1) * divisor), brush);
+                            var brush = _blockBrushes[k++];
+                            _renderTarget.FillRectangle(new D2D_RECT_F(i * DIVISOR, j * DIVISOR, (i + 1) * DIVISOR, (j + 1) * DIVISOR), brush);
                         }
                     }
 
-                    var radius = divisor * 2;
+                    var radius = DIVISOR * 2;
                     const float padding = 1;
                     _renderTarget.DrawEllipse(new D2D1_ELLIPSE(new D2D_POINT_2F(radius + padding, radius + padding), radius, radius), _whiteBrush);
                     _renderTarget.DrawEllipse(new D2D1_ELLIPSE(new D2D_POINT_2F(radius + padding, _height - radius - padding), radius, radius), _whiteBrush);
@@ -220,7 +235,7 @@ namespace VCamNetSampleSource
                     _renderTarget.EndDraw();
                 }
 
-                EventProvider.LogInfo("generated");
+                //EventProvider.LogInfo("format: " + format + " generated 3D:" + HasD3DManager);
 
                 if (HasD3DManager)
                 {
@@ -228,32 +243,32 @@ namespace VCamNetSampleSource
 
                     // create a buffer from this and add to sample
                     using var mediaBuffer = MFFunctions.MFCreateDXGISurfaceBuffer(_texture);
-                    sample.AddBuffer(mediaBuffer.Object).ThrowOnError();
+                    sample.Object.AddBuffer(mediaBuffer.Object).ThrowOnError();
 
                     // if we're on GPU & format is not RGB, convert using GPU
                     if (format == MFConstants.MFVideoFormat_NV12)
                     {
-                        _converter!.Object.ProcessInput(0, sample, 0).ThrowOnError();
+                        _converter!.Object.ProcessInput(0, sample.Object, 0).ThrowOnError();
 
                         // let converter build the sample for us, note it works because we gave it the D3DManager
                         var buffers = new _MFT_OUTPUT_DATA_BUFFER[1];
-                        _converter.Object.ProcessOutput(0, 1, buffers, out var status).ThrowOnError();
+                        _converter.Object.ProcessOutput(0, (uint)buffers.Length, buffers, out var status).ThrowOnError();
                         var os = (IMFSample)Marshal.GetTypedObjectForIUnknown(buffers[0].pSample, typeof(IMFSample));
-                        outSample = os;
+                        outSample = new ComObject<IMFSample>(os);
                         Marshal.Release(buffers[0].pSample);
                     }
                     else
                     {
-                        outSample = null; // nothing to do
+                        outSample = sample; // nothing to do
                     }
 
                     _frame++;
-                    return HRESULTS.S_OK;
+                    return outSample;
                 }
 
                 HRESULT hr;
                 outSample = null;
-                sample.GetBufferByIndex(0, out var buffer).ThrowOnError();
+                sample.Object.GetBufferByIndex(0, out var buffer).ThrowOnError();
                 using var buffer2D = new ComObject<IMF2DBuffer2>((IMF2DBuffer2)buffer);
                 buffer2D.Object.Lock2DSize(_MF2DBuffer_LockFlags.MF2DBuffer_LockFlags_Write, out var scanline, out var pitch, out var start, out var length).ThrowOnError();
                 try
@@ -265,7 +280,7 @@ namespace VCamNetSampleSource
 
                     if (format == MFConstants.MFVideoFormat_NV12)
                     {
-                        _converter!.Object.ProcessInput(0, sample, 0).ThrowOnError();
+                        _converter!.Object.ProcessInput(0, sample.Object, 0).ThrowOnError();
 
                         _converter.Object.GetOutputStreamInfo(0, out var info).ThrowOnError();
                         var os = MFFunctions.MFCreateSample();
@@ -281,7 +296,7 @@ namespace VCamNetSampleSource
                         });
 
                         _frame++;
-                        outSample = os.Object;
+                        outSample = os;
                         hr = HRESULTS.S_OK;
                     }
                     else
@@ -291,15 +306,15 @@ namespace VCamNetSampleSource
                         {
                             wicPointer.CopyTo(scanline, length);
                             _frame++;
-                            outSample = sample;
                         }
+                        outSample = sample;
                     }
                 }
                 finally
                 {
                     buffer2D.Object.Unlock2D().ThrowOnError();
                 }
-                return hr;
+                return outSample;
             }
             catch (Exception e)
             {
@@ -310,22 +325,40 @@ namespace VCamNetSampleSource
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!_disposedValue)
+            EventProvider.LogInfo();
+            try
             {
-                if (disposing)
+                if (!_disposedValue)
                 {
-                    // dispose managed state (managed objects)
-                    var dxgiManager = _dxgiManager;
-                    if (_deviceHandle != IntPtr.Zero && dxgiManager != null)
+                    if (disposing)
                     {
-                        dxgiManager.Object.CloseDeviceHandle(_deviceHandle);
-                    }
-                    _texture.SafeDispose();
-                }
+                        // dispose managed state (managed objects)
+                        var dxgiManager = _dxgiManager;
+                        if (_deviceHandle != IntPtr.Zero && dxgiManager != null)
+                        {
+                            dxgiManager.Object.CloseDeviceHandle(_deviceHandle);
+                        }
 
-                // free unmanaged resources (unmanaged objects) and override finalizer
-                // set large fields to null
-                _disposedValue = true;
+                        _whiteBrush.SafeDispose();
+                        _blockBrushes.Dispose();
+                        _bitmap.SafeDispose();
+                        _texture.SafeDispose();
+                        _textFormat.SafeDispose();
+                        _dwrite.SafeDispose();
+                        _renderTarget.SafeDispose();
+                        _converter.SafeDispose();
+                    }
+
+                    // free unmanaged resources (unmanaged objects) and override finalizer
+                    // set large fields to null
+                    _disposedValue = true;
+                    EventProvider.LogInfo("Disposed");
+                }
+            }
+            catch (Exception e)
+            {
+                EventProvider.LogError(e.ToString());
+                throw;
             }
         }
 
