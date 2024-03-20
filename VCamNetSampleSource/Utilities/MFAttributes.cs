@@ -14,7 +14,7 @@ namespace VCamNetSampleSource.Utilities
 
         public IComObject<IMFAttributes> Attributes { get; }
 
-        public virtual HRESULT GetItem(Guid guidKey, PropVariant pValue)
+        public virtual HRESULT GetItem(Guid guidKey, DetachedPropVariant pValue)
         {
             var hr = Attributes.Object.GetItem(guidKey, pValue);
             EventProvider.LogInfo($"({guidKey.GetMFName()}) {pValue} => {hr}", filePath: GetType().Name);
@@ -28,7 +28,7 @@ namespace VCamNetSampleSource.Utilities
             return hr;
         }
 
-        public virtual HRESULT CompareItem(Guid guidKey, PropVariant pValue, out bool pbResult)
+        public virtual HRESULT CompareItem(Guid guidKey, DetachedPropVariant pValue, out bool pbResult)
         {
             var hr = Attributes.Object.CompareItem(guidKey, pValue, out pbResult);
             EventProvider.LogInfo($"({guidKey.GetMFName()}) {pValue} {pbResult} => {hr}", filePath: GetType().Name);
@@ -119,7 +119,7 @@ namespace VCamNetSampleSource.Utilities
             return hr;
         }
 
-        public virtual HRESULT SetItem(Guid guidKey, PropVariant value)
+        public virtual HRESULT SetItem(Guid guidKey, DetachedPropVariant value)
         {
             var hr = Attributes.Object.SetItem(guidKey, value);
             EventProvider.LogInfo($"({guidKey.GetMFName()}) {value} => {hr}", filePath: GetType().Name);
@@ -210,7 +210,7 @@ namespace VCamNetSampleSource.Utilities
             return hr;
         }
 
-        public virtual HRESULT GetItemByIndex(uint unIndex, out Guid pguidKey, PropVariant pValue)
+        public virtual HRESULT GetItemByIndex(uint unIndex, out Guid pguidKey, DetachedPropVariant pValue)
         {
             var hr = Attributes.Object.GetItemByIndex(unIndex, out pguidKey, pValue);
             EventProvider.LogInfo($"{unIndex} {pguidKey} {pValue} => {hr}", filePath: GetType().Name);
@@ -220,7 +220,8 @@ namespace VCamNetSampleSource.Utilities
         public virtual HRESULT CopyAllItems(IMFAttributes pDest)
         {
             var hr = Attributes.Object.CopyAllItems(pDest);
-            EventProvider.LogInfo($"{this.Trace()} > {pDest.Trace()} => {hr}", filePath: GetType().Name);
+            //EventProvider.LogInfo($"{this.Trace()} > {pDest.Trace()} => {hr}", filePath: GetType().Name);
+            EventProvider.LogInfo($"{this.Count()} => {hr}", filePath: GetType().Name);
             return hr;
         }
 

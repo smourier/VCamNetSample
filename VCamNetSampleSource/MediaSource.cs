@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using DirectN;
 using VCamNetSampleSource.Utilities;
 using Windows.ApplicationModel;
@@ -11,7 +12,7 @@ namespace VCamNetSampleSource
     {
         private readonly object _lock = new();
         private readonly MediaStream[] _streams;
-        private readonly IComObject<IMFMediaEventQueue>? _queue;
+        private IComObject<IMFMediaEventQueue>? _queue;
         private IComObject<IMFPresentationDescriptor>? _presentationDescriptor;
 
         public MediaSource()
@@ -101,14 +102,15 @@ namespace VCamNetSampleSource
             {
                 lock (_lock)
                 {
-                    if (_queue == null)
+                    var queue = _queue;
+                    if (queue == null)
                     {
                         evt = null!;
                         EventProvider.LogInfo($"MF_E_SHUTDOWN");
                         return HRESULTS.MF_E_SHUTDOWN;
                     }
 
-                    var hr = _queue.Object.GetEvent(flags, out evt);
+                    var hr = queue.Object.GetEvent(flags, out evt);
                     EventProvider.LogInfo($" => {hr}");
                     return hr;
                 }
@@ -127,13 +129,14 @@ namespace VCamNetSampleSource
             {
                 lock (_lock)
                 {
-                    if (_queue == null)
+                    var queue = _queue;
+                    if (queue == null)
                     {
                         EventProvider.LogInfo($"MF_E_SHUTDOWN");
                         return HRESULTS.MF_E_SHUTDOWN;
                     }
 
-                    var hr = _queue.Object.BeginGetEvent(callback, state);
+                    var hr = queue.Object.BeginGetEvent(callback, state);
                     EventProvider.LogInfo($" => {hr}");
                     return hr;
                 }
@@ -143,7 +146,6 @@ namespace VCamNetSampleSource
                 EventProvider.LogError(e.ToString());
                 throw;
             }
-
         }
 
         public HRESULT EndGetEvent(IMFAsyncResult result, out IMFMediaEvent evt)
@@ -153,15 +155,16 @@ namespace VCamNetSampleSource
             {
                 lock (_lock)
                 {
-                    if (_queue == null)
+                    var queue = _queue;
+                    if (queue == null)
                     {
                         evt = null!;
                         EventProvider.LogInfo($"MF_E_SHUTDOWN");
                         return HRESULTS.MF_E_SHUTDOWN;
                     }
 
-                    var hr = _queue.Object.EndGetEvent(result, out evt);
-                    EventProvider.LogInfo($" => {hr}");
+                    var hr = queue.Object.EndGetEvent(result, out evt);
+                    EventProvider.LogInfo($" evt:{evt} => {hr}");
                     return hr;
                 }
             }
@@ -172,18 +175,19 @@ namespace VCamNetSampleSource
             }
         }
 
-        public HRESULT QueueEvent(uint type, Guid extendedType, HRESULT hrStatus, PropVariant value)
+        public HRESULT QueueEvent(uint type, Guid extendedType, HRESULT hrStatus, DetachedPropVariant value)
         {
-            EventProvider.LogInfo($"type:{type}");
+            EventProvider.LogInfo($"type:{type} value:{value}");
             lock (_lock)
             {
-                if (_queue == null)
+                var queue = _queue;
+                if (queue == null)
                 {
                     EventProvider.LogInfo($"MF_E_SHUTDOWN");
                     return HRESULTS.MF_E_SHUTDOWN;
                 }
 
-                var hr = _queue.Object.QueueEventParamVar(type, extendedType, hrStatus, value);
+                var hr = queue.Object.QueueEventParamVar(type, extendedType, hrStatus, value);
                 EventProvider.LogInfo($" => {hr}");
                 return hr;
             }
@@ -222,7 +226,7 @@ namespace VCamNetSampleSource
             }
         }
 
-        public HRESULT Start(IMFPresentationDescriptor presentationDescriptor, nint guidTimeFormat, PropVariant startPosition)
+        public HRESULT Start(IMFPresentationDescriptor presentationDescriptor, nint guidTimeFormat, DetachedPropVariant startPosition)
         {
             try
             {
@@ -239,7 +243,9 @@ namespace VCamNetSampleSource
 
                 lock (_lock)
                 {
-                    if (_queue == null || _presentationDescriptor == null)
+                    var queue = _queue;
+                    var ps = _presentationDescriptor;
+                    if (queue == null || ps == null)
                     {
                         EventProvider.LogInfo($"MF_E_SHUTDOWN");
                         return HRESULTS.MF_E_SHUTDOWN;
@@ -263,7 +269,7 @@ namespace VCamNetSampleSource
                         if (index < 0)
                             return HRESULTS.E_INVALIDARG;
 
-                        _presentationDescriptor.Object.GetStreamDescriptorByIndex((uint)index, out var thisSelected, out var thisDescriptor).ThrowOnError();
+                        ps.Object.GetStreamDescriptorByIndex((uint)index, out var thisSelected, out var thisDescriptor).ThrowOnError();
                         _streams[i].GetStreamState(out var state).ThrowOnError();
 
                         if (thisSelected && state == _MF_STREAM_STATE.MF_STREAM_STATE_STOPPED)
@@ -279,23 +285,23 @@ namespace VCamNetSampleSource
                         {
                             if (selected)
                             {
-                                _presentationDescriptor.Object.SelectStream((uint)index).ThrowOnError();
-                                _queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MENewStream, Guid.Empty, HRESULTS.S_OK, _streams[index]).ThrowOnError();
+                                ps.Object.SelectStream((uint)index).ThrowOnError();
+                                queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MENewStream, Guid.Empty, HRESULTS.S_OK, _streams[index]).ThrowOnError();
                                 descriptor.GetMediaTypeHandler(out var handler).ThrowOnError();
                                 handler.GetCurrentMediaType(out var type).ThrowOnError();
                                 _streams[index].Start(type).ThrowOnError();
                             }
                             else
                             {
-                                _presentationDescriptor.Object.DeselectStream((uint)index).ThrowOnError();
+                                ps.Object.DeselectStream((uint)index).ThrowOnError();
                                 _streams[index].Stop().ThrowOnError();
                             }
                         }
                     }
 
                     using var pv = new PropVariant(time);
-                    _queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MESourceStopped, Guid.Empty, HRESULTS.S_OK, pv).ThrowOnError();
-                    pv.Dispose();
+                    var detached = pv.Detached;
+                    queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MESourceStopped, Guid.Empty, HRESULTS.S_OK, detached).ThrowOnError();
                     return HRESULTS.S_OK;
                 }
             }
@@ -313,7 +319,9 @@ namespace VCamNetSampleSource
                 EventProvider.LogInfo();
                 lock (_lock)
                 {
-                    if (_queue == null || _presentationDescriptor == null)
+                    var queue = _queue;
+                    var presentationDescriptor = _presentationDescriptor;
+                    if (queue == null || presentationDescriptor == null)
                     {
                         EventProvider.LogInfo($"MF_E_SHUTDOWN");
                         return HRESULTS.MF_E_SHUTDOWN;
@@ -323,11 +331,12 @@ namespace VCamNetSampleSource
                     for (var i = 0; i < _streams.Length; i++)
                     {
                         _streams[i].Stop().ThrowOnError();
-                        _presentationDescriptor.Object.DeselectStream((uint)i).ThrowOnError();
+                        presentationDescriptor.Object.DeselectStream((uint)i).ThrowOnError();
                     }
 
                     using var pv = new PropVariant(time);
-                    _queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MESourceStopped, Guid.Empty, HRESULTS.S_OK, pv).ThrowOnError();
+                    var detached = pv.Detached;
+                    queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MESourceStopped, Guid.Empty, HRESULTS.S_OK, detached).ThrowOnError();
                     return HRESULTS.S_OK;
                 }
             }
@@ -351,15 +360,14 @@ namespace VCamNetSampleSource
             {
                 lock (_lock)
                 {
-                    if (_queue == null)
+                    var queue = _queue;
+                    if (queue == null)
                     {
                         EventProvider.LogInfo($"MF_E_SHUTDOWN");
                         return HRESULTS.MF_E_SHUTDOWN;
                     }
 
-                    _queue.Object.Shutdown();
-                    _streams.Dispose();
-                    _presentationDescriptor = null;
+                    queue.Object.Shutdown().ThrowOnError();
                     Attributes.DeleteAllItems();
                     return HRESULTS.S_OK;
                 }
@@ -540,6 +548,9 @@ namespace VCamNetSampleSource
         protected override void Dispose(bool disposing)
         {
             Shutdown();
+            Interlocked.Exchange(ref _presentationDescriptor!, null)?.Dispose();
+            Interlocked.Exchange(ref _queue!, null)?.Dispose();
+            _streams.Dispose();
             base.Dispose(disposing);
         }
     }

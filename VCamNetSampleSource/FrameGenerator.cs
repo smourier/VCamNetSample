@@ -112,7 +112,6 @@ namespace VCamNetSampleSource
 
             // create GPU RGB => NV12 converter
             _converter = new ComObject<IMFTransform>((IMFTransform)System.Activator.CreateInstance(Type.GetTypeFromCLSID(MFConstants.CLSID_VideoProcessorMFT)!)!);
-            //_converter.GetAttributes().Set(MFConstants.MF_XVP_DISABLE_FRC, true);
             SetConverterTypes(width, height);
 
             // make sure the video processor works on GPU
@@ -253,8 +252,9 @@ namespace VCamNetSampleSource
                         // let converter build the sample for us, note it works because we gave it the D3DManager
                         var buffers = new _MFT_OUTPUT_DATA_BUFFER[1];
                         _converter.Object.ProcessOutput(0, (uint)buffers.Length, buffers, out var status).ThrowOnError();
-                        var os = (IMFSample)Marshal.GetTypedObjectForIUnknown(buffers[0].pSample, typeof(IMFSample));
-                        outSample = new ComObject<IMFSample>(os);
+                        EventProvider.LogInfo($" status {status}");
+
+                        outSample = ComObject.From<IMFSample>(buffers[0].pSample);
                         Marshal.Release(buffers[0].pSample);
                     }
                     else
