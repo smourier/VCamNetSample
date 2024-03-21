@@ -14,7 +14,7 @@ namespace VCamNetSampleSource.Utilities
 
         public IComObject<IMFAttributes> Attributes { get; }
 
-        public virtual HRESULT GetItem(Guid guidKey, DetachedPropVariant pValue)
+        public virtual HRESULT GetItem(Guid guidKey, PROPVARIANT pValue)
         {
             var hr = Attributes.Object.GetItem(guidKey, pValue);
             EventProvider.LogInfo($"({guidKey.GetMFName()}) {pValue} => {hr}", filePath: GetType().Name);
@@ -28,7 +28,7 @@ namespace VCamNetSampleSource.Utilities
             return hr;
         }
 
-        public virtual HRESULT CompareItem(Guid guidKey, DetachedPropVariant pValue, out bool pbResult)
+        public virtual HRESULT CompareItem(Guid guidKey, PROPVARIANT pValue, out bool pbResult)
         {
             var hr = Attributes.Object.CompareItem(guidKey, pValue, out pbResult);
             EventProvider.LogInfo($"({guidKey.GetMFName()}) {pValue} {pbResult} => {hr}", filePath: GetType().Name);
@@ -119,7 +119,7 @@ namespace VCamNetSampleSource.Utilities
             return hr;
         }
 
-        public virtual HRESULT SetItem(Guid guidKey, DetachedPropVariant value)
+        public virtual HRESULT SetItem(Guid guidKey, PROPVARIANT value)
         {
             var hr = Attributes.Object.SetItem(guidKey, value);
             EventProvider.LogInfo($"({guidKey.GetMFName()}) {value} => {hr}", filePath: GetType().Name);
@@ -210,7 +210,7 @@ namespace VCamNetSampleSource.Utilities
             return hr;
         }
 
-        public virtual HRESULT GetItemByIndex(uint unIndex, out Guid pguidKey, DetachedPropVariant pValue)
+        public virtual HRESULT GetItemByIndex(uint unIndex, out Guid pguidKey, PROPVARIANT pValue)
         {
             var hr = Attributes.Object.GetItemByIndex(unIndex, out pguidKey, pValue);
             EventProvider.LogInfo($"{unIndex} {pguidKey} {pValue} => {hr}", filePath: GetType().Name);

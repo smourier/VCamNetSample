@@ -10,7 +10,6 @@ namespace VCamNetSampleSource
     {
         public Activator()
         {
-            ComObject.Logger = EventProvider.Current;
             EventProvider.LogInfo($"ctor commandLine:{Environment.CommandLine}");
             SetDefaultAttributes(this);
         }

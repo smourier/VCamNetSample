@@ -10,6 +10,7 @@ namespace VCamNetSampleSource
     {
         public const int NUM_IMAGE_COLS = 1280;
         public const int NUM_IMAGE_ROWS = 960;
+        public const int NUM_ALLOCATOR_SAMPLES = 10;
 
         private readonly object _lock = new();
         private readonly uint _index;
@@ -95,6 +96,8 @@ namespace VCamNetSampleSource
 
             if (type != null)
             {
+                allocator.Object.InitializeSampleAllocator(NUM_ALLOCATOR_SAMPLES, type).ThrowOnError();
+
                 type.GetGUID(MFConstants.MF_MT_SUBTYPE, out _format).ThrowOnError();
                 EventProvider.LogInfo("Format: " + _format.GetMFName());
             }
@@ -103,11 +106,9 @@ namespace VCamNetSampleSource
             // so we want to create a D2D1 renter target anyway
             _generator.EnsureRenderTarget(NUM_IMAGE_COLS, NUM_IMAGE_ROWS).ThrowOnError();
 
-            // note the 200 here vs 10 with native version
-            allocator.Object.InitializeSampleAllocator(200, type).ThrowOnError();
             queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEStreamStarted, Guid.Empty, HRESULTS.S_OK, null).ThrowOnError();
             _state = _MF_STREAM_STATE.MF_STREAM_STATE_RUNNING;
-            EventProvider.LogInfo("init ok");
+            EventProvider.LogInfo("Started");
             return HRESULTS.S_OK;
         }
 
@@ -196,7 +197,7 @@ namespace VCamNetSampleSource
 
         public HRESULT BeginGetEvent(IMFAsyncCallback callback, object state)
         {
-            EventProvider.LogInfo($"callback:{callback} state:{state}");
+            //EventProvider.LogInfo($"callback:{callback} state:{state}");
             try
             {
                 lock (_lock)
@@ -236,7 +237,7 @@ namespace VCamNetSampleSource
                     }
 
                     var hr = queue.Object.EndGetEvent(result, out evt);
-                    EventProvider.LogInfo($" evt {evt}=> {hr}");
+                    //EventProvider.LogInfo($" evt {evt}=> {hr}");
                     return hr;
                 }
             }
@@ -247,7 +248,7 @@ namespace VCamNetSampleSource
             }
         }
 
-        public HRESULT QueueEvent(uint type, Guid extendedType, HRESULT hrStatus, DetachedPropVariant value)
+        public HRESULT QueueEvent(uint type, Guid extendedType, HRESULT hrStatus, PROPVARIANT value)
         {
             EventProvider.LogInfo($"type:{type} value:{value}");
             try
@@ -331,6 +332,7 @@ namespace VCamNetSampleSource
                         return HRESULTS.MF_E_SHUTDOWN;
 
                     allocator.Object.AllocateSample(out var sample).ThrowOnError();
+
                     using (var inputSample = new ComObject<IMFSample>(sample))
                     {
                         sample.SetSampleTime(Functions.MFGetSystemTime()).ThrowOnError();
@@ -347,9 +349,12 @@ namespace VCamNetSampleSource
                         }
                     }
 
-                    var hr = HRESULTS.S_OK;
-                    EventProvider.LogInfo($" tok {token} => {hr}");
-                    return hr;
+                    // we must do this sometimes, otherwise the allocator gets full too early
+                    if (_generator.FrameCount % (NUM_ALLOCATOR_SAMPLES / 2) == 0)
+                    {
+                        GC.Collect();
+                    }
+                    return HRESULTS.S_OK;
                 }
             }
             catch (Exception e)

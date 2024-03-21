@@ -33,6 +33,7 @@ namespace VCamNetSampleSource
                 Functions.MFCreateSensorProfileCollection(out var collection).ThrowOnError();
                 collection.AddProfile(legacy).ThrowOnError();
                 collection.AddProfile(high).ThrowOnError();
+
                 SetUnknown(MFConstants.MF_DEVICEMFT_SENSORPROFILE_COLLECTION, collection).ThrowOnError();
 
                 try
@@ -175,7 +176,7 @@ namespace VCamNetSampleSource
             }
         }
 
-        public HRESULT QueueEvent(uint type, Guid extendedType, HRESULT hrStatus, DetachedPropVariant value)
+        public HRESULT QueueEvent(uint type, Guid extendedType, HRESULT hrStatus, PROPVARIANT value)
         {
             EventProvider.LogInfo($"type:{type} value:{value}");
             lock (_lock)
@@ -226,7 +227,7 @@ namespace VCamNetSampleSource
             }
         }
 
-        public HRESULT Start(IMFPresentationDescriptor presentationDescriptor, nint guidTimeFormat, DetachedPropVariant startPosition)
+        public HRESULT Start(IMFPresentationDescriptor presentationDescriptor, nint guidTimeFormat, PROPVARIANT startPosition)
         {
             try
             {

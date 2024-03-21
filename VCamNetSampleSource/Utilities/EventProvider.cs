@@ -24,7 +24,7 @@ namespace VCamNetSampleSource.Utilities
         public EventProvider(Guid id)
         {
             Id = id;
-            var hr = EventRegister(id, nint.Zero, nint.Zero, out _handle);
+            var hr = EventRegister(id, IntPtr.Zero, IntPtr.Zero, out _handle);
             if (hr != 0)
                 throw new Win32Exception(hr);
         }
@@ -56,7 +56,7 @@ namespace VCamNetSampleSource.Utilities
         }
 
         [DllImport("advapi32")]
-        private static extern int EventRegister([MarshalAs(UnmanagedType.LPStruct)] Guid ProviderId, nint EnableCallback, nint CallbackContext, out long RegHandle);
+        private static extern int EventRegister([MarshalAs(UnmanagedType.LPStruct)] Guid ProviderId, IntPtr EnableCallback, IntPtr CallbackContext, out long RegHandle);
 
         [DllImport("advapi32")]
         private static extern int EventUnregister(long RegHandle);

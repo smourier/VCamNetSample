@@ -13,7 +13,7 @@ namespace VCamNetSampleSource
         private bool _disposedValue;
         private uint _width;
         private uint _height;
-        private ulong _frame;
+        private ulong _frameCount;
         private long _prevTime;
         private uint _fps;
         private IntPtr _deviceHandle;
@@ -28,6 +28,7 @@ namespace VCamNetSampleSource
         private IComObject<IMFDXGIDeviceManager>? _dxgiManager;
 
         public bool HasD3DManager => _texture != null;
+        public ulong FrameCount => _frameCount;
 
         // common to CPU & GPU
         private HRESULT CreateRenderTargetResources(uint width, uint height)
@@ -52,11 +53,9 @@ namespace VCamNetSampleSource
                 }
             }
 
-            _blockBrushes = [.. brushes];
+            _blockBrushes = brushes.ToArray();
             _width = width;
             _height = height;
-            EventProvider.LogInfo($"width {_width} height {_height} Blocks :{_blockBrushes.Length}");
-
             return HRESULTS.S_OK;
         }
 
@@ -129,7 +128,6 @@ namespace VCamNetSampleSource
                     // create a D2D1 render target from WIC bitmap
                     using var factory = D2D1Functions.D2D1CreateFactory(D2D1_FACTORY_TYPE.D2D1_FACTORY_TYPE_MULTI_THREADED);
                     _bitmap = WICImagingFactory.CreateBitmap((int)width, (int)height, WICConstants.GUID_WICPixelFormat32bppBGR, WICBitmapCreateCacheOption.WICBitmapCacheOnDemand);
-                    EventProvider.LogInfo("_bitmap:" + _bitmap.GetSize());
                     _renderTarget = factory.CreateWicBitmapRenderTarget(_bitmap, new D2D1_RENDER_TARGET_PROPERTIES
                     {
                         pixelFormat = new D2D1_PIXEL_FORMAT
@@ -142,13 +140,12 @@ namespace VCamNetSampleSource
                     CreateRenderTargetResources(width, height).ThrowOnError();
 
                     // create CPU RGB => NV12 converter
-                    var CLSID_CColorConvertDMO = new Guid("98230571-0087-4204-b020-3282538e57d3");
-                    _converter = new ComObject<IMFTransform>((IMFTransform)System.Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_CColorConvertDMO)!)!);
+                    _converter = new ComObject<IMFTransform>((IMFTransform)System.Activator.CreateInstance(Type.GetTypeFromCLSID(MFConstants.CLSID_CColorConvertDMO)!)!);
                     SetConverterTypes(width, height);
                 }
 
                 _prevTime = Functions.MFGetSystemTime();
-                _frame = 0;
+                _frameCount = 0;
                 return HRESULTS.S_OK;
             }
             catch (Exception e)
@@ -220,14 +217,14 @@ namespace VCamNetSampleSource
                     const int NS_PER_MS = 10000;
                     const int MS_PER_S = 1000;
 
-                    if (_fps == 0 || (_frame % FRAMES_FOR_FPS) == 0)
+                    if (_fps == 0 || (_frameCount % FRAMES_FOR_FPS) == 0)
                     {
                         var time = Functions.MFGetSystemTime();
                         _fps = (uint)(MS_PER_S * NS_PER_MS * FRAMES_FOR_FPS / (time - _prevTime));
                         _prevTime = time;
                     }
 
-                    var text = $"Format: {fmt}\n.NET Frame#: {_frame}\nFps: {_fps}\nResolution: {_width} x {_height}";
+                    var text = $"Format: {fmt}\n.NET Frame#: {_frameCount}\nFps: {_fps}\nResolution: {_width} x {_height}";
 
                     using var layout = _dwrite.CreateTextLayout(_textFormat, text, text.Length, _width, _height);
                     _renderTarget.DrawTextLayout(new D2D_POINT_2F(0, 0), layout, _whiteBrush);
@@ -244,7 +241,7 @@ namespace VCamNetSampleSource
                     using var mediaBuffer = MFFunctions.MFCreateDXGISurfaceBuffer(_texture);
                     sample.Object.AddBuffer(mediaBuffer.Object).ThrowOnError();
 
-                    // if we're on GPU & format is not RGB, convert using GPU
+                    // if we're on GPU & format is not RGB, convert using GPU (VideoProcessorMFT)
                     if (format == MFConstants.MFVideoFormat_NV12)
                     {
                         _converter!.Object.ProcessInput(0, sample.Object, 0).ThrowOnError();
@@ -252,8 +249,6 @@ namespace VCamNetSampleSource
                         // let converter build the sample for us, note it works because we gave it the D3DManager
                         var buffers = new _MFT_OUTPUT_DATA_BUFFER[1];
                         _converter.Object.ProcessOutput(0, (uint)buffers.Length, buffers, out var status).ThrowOnError();
-                        EventProvider.LogInfo($" status {status}");
-
                         outSample = ComObject.From<IMFSample>(buffers[0].pSample);
                         Marshal.Release(buffers[0].pSample);
                     }
@@ -262,58 +257,43 @@ namespace VCamNetSampleSource
                         outSample = sample; // nothing to do
                     }
 
-                    _frame++;
+                    _frameCount++;
                     return outSample;
                 }
 
-                HRESULT hr;
-                outSample = null;
-                sample.Object.GetBufferByIndex(0, out var buffer).ThrowOnError();
-                using var buffer2D = new ComObject<IMF2DBuffer2>((IMF2DBuffer2)buffer);
-                buffer2D.Object.Lock2DSize(_MF2DBuffer_LockFlags.MF2DBuffer_LockFlags_Write, out var scanline, out var pitch, out var start, out var length).ThrowOnError();
-                try
+                // write WIC bitmap to output sample
+                using var locked = _bitmap.Lock(WICBitmapLockFlags.WICBitmapLockRead);
+                locked.Object.GetSize(out var w, out var h).ThrowOnError();
+                locked.Object.GetStride(out var wicStride).ThrowOnError();
+                locked.Object.GetDataPointer(out var wicSize, out var wicPointer).ThrowOnError();
+
+                using var buffer = sample.GetBufferByIndex(0);
+                buffer.WithLock((scanline, length, _) => wicPointer.CopyTo(scanline, length));
+                buffer.SetCurrentLength(wicSize);
+
+                // if we're on CPU & format is NOT RGB, convert using CPU (CColorConvertDMO)
+                if (format == MFConstants.MFVideoFormat_NV12)
                 {
-                    using var locked = _bitmap.Lock(WICBitmapLockFlags.WICBitmapLockRead);
-                    locked.Object.GetSize(out var w, out var h).ThrowOnError();
-                    locked.Object.GetStride(out var wicStride).ThrowOnError();
-                    locked.Object.GetDataPointer(out var wicSize, out var wicPointer).ThrowOnError();
+                    _converter!.Object.ProcessInput(0, sample.Object, 0).ThrowOnError();
 
-                    if (format == MFConstants.MFVideoFormat_NV12)
+                    // convert RGB sample to NV12 sample
+                    _converter.Object.GetOutputStreamInfo(0, out var info).ThrowOnError();
+                    outSample = MFFunctions.MFCreateSample();
+                    using var outBuffer = MFFunctions.MFCreateMemoryBuffer(info.cbSize);
+                    outSample.AddBuffer(outBuffer);
+                    outSample.WithComPointer(outSamplePtr =>
                     {
-                        _converter!.Object.ProcessInput(0, sample.Object, 0).ThrowOnError();
-
-                        _converter.Object.GetOutputStreamInfo(0, out var info).ThrowOnError();
-                        var os = MFFunctions.MFCreateSample();
-                        using var osBuffer = MFFunctions.MFCreateMemoryBuffer(info.cbSize);
-                        os.AddBuffer(osBuffer);
-                        os.WithComPointer(pSample =>
-                        {
-                            var buffers = new _MFT_OUTPUT_DATA_BUFFER[1];
-                            buffers[0].pSample = pSample;
-                            var hr2 = _converter.Object.ProcessOutput(0, 1, buffers, out var status);
-                            EventProvider.LogInfo("buffer size:" + info.cbSize + " hr:" + hr2 + " status:" + status);
-                            hr2.ThrowOnError();
-                        });
-
-                        _frame++;
-                        outSample = os;
-                        hr = HRESULTS.S_OK;
-                    }
-                    else
-                    {
-                        hr = (wicSize != length || wicStride != pitch) ? HRESULTS.E_FAIL : HRESULTS.S_OK;
-                        if (hr.IsSuccess)
-                        {
-                            wicPointer.CopyTo(scanline, length);
-                            _frame++;
-                        }
-                        outSample = sample;
-                    }
+                        var buffers = new _MFT_OUTPUT_DATA_BUFFER[1];
+                        buffers[0].pSample = outSamplePtr;
+                        _converter.Object.ProcessOutput(0, 1, buffers, out var status).ThrowOnError();
+                    });
                 }
-                finally
+                else
                 {
-                    buffer2D.Object.Unlock2D().ThrowOnError();
+                    outSample = sample; // nothing to do
                 }
+
+                _frameCount++;
                 return outSample;
             }
             catch (Exception e)
