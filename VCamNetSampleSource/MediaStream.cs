@@ -13,7 +13,6 @@ namespace VCamNetSampleSource
         public const int NUM_ALLOCATOR_SAMPLES = 10;
 
         private readonly object _lock = new();
-        private readonly uint _index;
         private readonly MediaSource _source;
         private IComObject<IMFMediaEventQueue>? _queue;
         private IComObject<IMFStreamDescriptor>? _descriptor;
@@ -28,7 +27,6 @@ namespace VCamNetSampleSource
             {
                 ArgumentNullException.ThrowIfNull(source);
                 _source = source;
-                _index = index;
 
                 SetGUID(MFConstants.MF_DEVICESTREAM_STREAM_CATEGORY, KSMedia.PINNAME_VIDEO_CAPTURE).ThrowOnError();
                 SetUINT32(MFConstants.MF_DEVICESTREAM_STREAM_ID, index).ThrowOnError();
@@ -338,15 +336,13 @@ namespace VCamNetSampleSource
                         sample.SetSampleTime(Functions.MFGetSystemTime()).ThrowOnError();
                         sample.SetSampleDuration(333333).ThrowOnError();
 
-                        using (var outputSample = _generator.Generate(inputSample, _format))
+                        using var outputSample = _generator.Generate(inputSample, _format);
+                        if (token != null)
                         {
-                            if (token != null)
-                            {
-                                outputSample.Object.SetUnknown(MFConstants.MFSampleExtension_Token, token).ThrowOnError();
-                            }
-
-                            queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEMediaSample, Guid.Empty, HRESULTS.S_OK, outputSample.Object).ThrowOnError();
+                            outputSample.Object.SetUnknown(MFConstants.MFSampleExtension_Token, token).ThrowOnError();
                         }
+
+                        queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEMediaSample, Guid.Empty, HRESULTS.S_OK, outputSample.Object).ThrowOnError();
                     }
 
                     // we must do this sometimes, otherwise the allocator gets full too early

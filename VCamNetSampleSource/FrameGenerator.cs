@@ -235,9 +235,9 @@ namespace VCamNetSampleSource
 
                 if (HasD3DManager)
                 {
-                    sample.RemoveAllBuffers();
+                    sample.RemoveAllBuffers(); // or create a new one?
 
-                    // create a buffer from this and add to sample
+                    // create a buffer from texture and add to sample
                     using var mediaBuffer = MFFunctions.MFCreateDXGISurfaceBuffer(_texture);
                     sample.Object.AddBuffer(mediaBuffer.Object).ThrowOnError();
 
@@ -261,27 +261,26 @@ namespace VCamNetSampleSource
                     return outSample;
                 }
 
-                // write WIC bitmap to output sample
+                // lock WIC bitmap to write to sample
                 using var locked = _bitmap.Lock(WICBitmapLockFlags.WICBitmapLockRead);
                 locked.Object.GetSize(out var w, out var h).ThrowOnError();
                 locked.Object.GetStride(out var wicStride).ThrowOnError();
                 locked.Object.GetDataPointer(out var wicSize, out var wicPointer).ThrowOnError();
 
-                using var buffer = sample.GetBufferByIndex(0);
-                buffer.WithLock((scanline, length, _) => wicPointer.CopyTo(scanline, length));
-                buffer.SetCurrentLength(wicSize);
-
                 // if we're on CPU & format is NOT RGB, convert using CPU (CColorConvertDMO)
                 if (format == MFConstants.MFVideoFormat_NV12)
                 {
-                    _converter!.Object.ProcessInput(0, sample.Object, 0).ThrowOnError();
+                    // create temp RGB sample for WIC bitmap
+                    using var wicSample = MFFunctions.MFCreateSample();
+                    using var wicBuffer = MFFunctions.MFCreateMemoryBuffer(wicSize);
+                    wicSample.AddBuffer(wicBuffer);
+                    wicBuffer.WithLock((scanline, length, _) => wicPointer.CopyTo(scanline, length));
+                    wicBuffer.SetCurrentLength(wicSize);
+
+                    _converter!.Object.ProcessInput(0, wicSample.Object, 0).ThrowOnError();
 
                     // convert RGB sample to NV12 sample
-                    _converter.Object.GetOutputStreamInfo(0, out var info).ThrowOnError();
-                    outSample = MFFunctions.MFCreateSample();
-                    using var outBuffer = MFFunctions.MFCreateMemoryBuffer(info.cbSize);
-                    outSample.AddBuffer(outBuffer);
-                    outSample.WithComPointer(outSamplePtr =>
+                    sample.WithComPointer(outSamplePtr =>
                     {
                         var buffers = new _MFT_OUTPUT_DATA_BUFFER[1];
                         buffers[0].pSample = outSamplePtr;
@@ -290,11 +289,15 @@ namespace VCamNetSampleSource
                 }
                 else
                 {
-                    outSample = sample; // nothing to do
+                    // sample is already for RGB
+                    using var buffer = sample.GetBufferByIndex(0);
+                    buffer.WithLock((scanline, length, _) => wicPointer.CopyTo(scanline, length));
+                    EventProvider.LogInfo("format: " + format + " max: " + buffer.GetMaxLength() + " wicSize:" + wicSize);
+                    buffer.SetCurrentLength(wicSize);
                 }
 
                 _frameCount++;
-                return outSample;
+                return sample;
             }
             catch (Exception e)
             {

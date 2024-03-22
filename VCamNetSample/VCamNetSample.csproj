@@ -18,9 +18,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Reference Include="DirectN">
-	    <HintPath>..\..\DirectN\DirectN\DirectN\bin\Debug\DirectN.dll</HintPath>
-	  </Reference>
+	  <PackageReference Include="DirectNCore" Version="1.16.0" />
 	</ItemGroup>
 
 	<ItemGroup>
