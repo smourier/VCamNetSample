@@ -127,12 +127,12 @@ namespace VCamNetSampleSource
                 {
                     // create a D2D1 render target from WIC bitmap
                     using var factory = D2D1Functions.D2D1CreateFactory(D2D1_FACTORY_TYPE.D2D1_FACTORY_TYPE_MULTI_THREADED);
-                    _bitmap = WICImagingFactory.CreateBitmap((int)width, (int)height, WICConstants.GUID_WICPixelFormat32bppBGR, WICBitmapCreateCacheOption.WICBitmapCacheOnDemand);
+                    _bitmap = WICImagingFactory.CreateBitmap((int)width, (int)height, WICConstants.GUID_WICPixelFormat32bppPBGRA, WICBitmapCreateCacheOption.WICBitmapCacheOnDemand);
                     _renderTarget = factory.CreateWicBitmapRenderTarget(_bitmap, new D2D1_RENDER_TARGET_PROPERTIES
                     {
                         pixelFormat = new D2D1_PIXEL_FORMAT
                         {
-                            alphaMode = D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_IGNORE,
+                            alphaMode = D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_PREMULTIPLIED,
                             format = DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM
                         }
                     });
