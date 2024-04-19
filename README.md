@@ -1,7 +1,7 @@
 # VCamNetSample
 This solution contains a Media Foundation Virtual Camera Sample developed using .NET. It works only on Windows 11 thanks to the [MFCreateVirtualCamera](https://learn.microsoft.com/en-us/windows/win32/api/mfvirtualcamera/nf-mfvirtualcamera-mfcreatevirtualcamera) API.
 
-It's a port of the same project written in C++ **VCamSample**: [https://github.com/smourier/VCamSample](https://github.com/smourier/VCamSample)
+It's a port of the same project written in C++ **VCamSample**: [https://github.com/smourier/VCamSample](https://github.com/smourier/VCamSample) and it's based on [DirectN](https://github.com/smourier/DirectN) for all DirectX, WIC and Media Foundation interop.
 
 There are two projects in the solution:
 
@@ -19,24 +19,25 @@ To test the .NET virtual cam:
 
 You should now see something like this in the Windows Camera App
 
-![Screenshot 2024-01-22 131726](https://github.com/smourier/VCamSample/assets/5328574/50b27acb-3cf7-4d41-9298-84f7c1358148)
+![Screenshot 2024-03-22 174749](https://github.com/smourier/VCamNetSample/assets/5328574/93ea57fa-515c-4aa9-b964-1b87c1c8761c)
 
 Something like this in Windows' Edge Web Browser, using this testing page: https://googlechrome.github.io/samples/image-capture/grab-frame-take-photo.html
 
-![Screenshot 2024-01-22 133220](https://github.com/smourier/VCamSample/assets/5328574/1f7d34e9-5646-4f26-bc9a-534e3bc9d625)
+![Screenshot 2024-03-22 181438](https://github.com/smourier/VCamNetSample/assets/5328574/ce360340-c7b5-4b58-a258-f73f498e6a98)
 
 Something like this in OBS (Video Capture Device):
 
-![image](https://github.com/smourier/VCamSample/assets/5328574/47768c63-2979-40ab-ae70-fca632b97d81)
+![Screenshot 2024-03-22 181650](https://github.com/smourier/VCamNetSample/assets/5328574/5bb2b1e2-370b-4e8b-bf47-94d2d37c6f8c)
 
-Something like this in Teams, this is your avatar :-)
+Something like this in Teams, yes, this is your avatar :-)
 
+![Screenshot 2024-03-22 181914](https://github.com/smourier/VCamNetSample/assets/5328574/603eca22-25a2-47be-8514-3bd4c297829f)
 
 ## Notes
 
 * The media source uses `Direct2D` and `DirectWrite` to create images. It will then create Media Foundation samples from these. To create MF samples, it can use:
   * The GPU, if a Direct3D manager has been provided by the environment. This is the case of the Windows 11 camera app.
-  * The CPU, if no Direct3D environment has been provided. In this case, the media source uses a WIC bitmap as a render target and it then copies the bits over to an MF sample. The ImageCapture API code embedded in Chrome or Edge, Teams, etc. is an example of such a D3D-less environment.
+  * The CPU, if no Direct3D environment has been provided. In this case, the media source uses a WIC bitmap as a render target and it then copies the bits over to an MF sample. The ImageCapture API code embedded in Chrome or Edge, Teams, etc. is an example of such a D3D-less environment (but sometimes it uses Direct3D).
   * If you want to force CPU usage at all times, you can change the code in `MediaStream::SetD3DManager` and put the lines there in comment.
 * The media source provides RGB32 and NV12 formats as most setups prefer the NV12 format. Samples are initially created as RGB32 (Direct2D) and converted to NV12. To convert the samples, the media source uses two ways:
   * The GPU, if a Direct3D manager has been provided, using Media Foundation's [Video Processor MFT](https://learn.microsoft.com/en-us/windows/win32/medfound/video-processor-mft).
