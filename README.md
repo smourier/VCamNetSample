@@ -13,7 +13,7 @@ There are two projects in the solution:
 To test the .NET virtual cam:
 
 * Build in debug or release
-* Go to the build output and register the media source (a COM object) with a command similar to this: `regsvr32 VCamNetSampleSource.dll` (you *must* run this as administrator, it' not possible to register a Virtual Camera media source in `HKCU`, only in `HKLM` since it will be loaded by multiple processes)
+* Go to the build output and register the media source (a COM object) with a command similar to this: `regsvr32 VCamNetSampleSource.comhost.dll` (you *must* run this as administrator, it' not possible to register a Virtual Camera media source in `HKCU`, only in `HKLM` since it will be loaded by multiple processes)
 * Run the VCamNetSample app.
 * Run for example the Windows Camera app or using a Web Browser ImageCapture API
 
