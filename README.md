@@ -44,6 +44,20 @@ Something like this in Teams, yes, this is your avatar :-)
   * The CPU, if no Direct3D environment has been provided. In this case, the RGB to NV12 conversion is done using Media Foundation's [Color Converter DSP](https://learn.microsoft.com/en-us/windows/win32/medfound/colorconverter).
   * If you want to force RGB32 mode, you can change the code in `MediaStream` constructor and set the media types array size to 1 (check comments in the code).
 
+## Troubleshooting "Access Denied" on IMFVirtualCamera::Start method
+If you get access denied here, it's probably the same issue as for the native version https://github.com/smourier/VCamSample/issues/1
+
+Here is a summary:
+
+* The COM object that serves as a Virtual Camera Source (here `VCamNetSampleSource.comhost.dll`) must be accessible by the two Windows 11 services **Frame Server** & **Frame Server Monitor** (running as `svchost.exe`).
+* These two services usually run as *Local Service* & *Local System* credentials respectively.
+* If you compile or build in a directory under your compiling user's root, for example something like `C:\Users\<your login>\source\repos\VCamNetSample\VCamNetSampleSource\bin\Debug\net8.0-windows10.0.22621.0` or somewhere restricted in some way, **it won't work** since these two services will need to access that.
+
+=> So the solution is just to either copy the output directory once built (or downloaded) somewhere where everyone has access and register  `VCamNetSampleSource.comhost.dll` from there, or copy/checkout the whole repo where everyone has access and build and register there.
+
+![image](https://github.com/smourier/VCamNetSample/assets/5328574/0c96d30a-c954-4d3f-8c7f-3d723258bd35)
+
+
 ## Tracing
 
 The code output lots of interesting traces. It's quite important in this virtual camera environment because there's not just your process that's involved but at least 4: the VCamNetSample app, the Windows Frame Server, the Windows camera monitor, and the reader app (camera, etc.). They all load the media source COM object in-process.
