@@ -104,7 +104,7 @@ namespace VCamNetSampleSource
             // so we want to create a D2D1 renter target anyway
             _generator.EnsureRenderTarget(NUM_IMAGE_COLS, NUM_IMAGE_ROWS).ThrowOnError();
 
-            queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEStreamStarted, Guid.Empty, HRESULTS.S_OK, null).ThrowOnError();
+            queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0013_0001.MEStreamStarted, Guid.Empty, HRESULTS.S_OK, null).ThrowOnError();
             _state = _MF_STREAM_STATE.MF_STREAM_STATE_RUNNING;
             EventProvider.LogInfo("Started");
             return HRESULTS.S_OK;
@@ -121,7 +121,7 @@ namespace VCamNetSampleSource
             }
 
             allocator.Object.UninitializeSampleAllocator();
-            queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEStreamStopped, Guid.Empty, HRESULTS.S_OK, null).ThrowOnError();
+            queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0013_0001.MEStreamStopped, Guid.Empty, HRESULTS.S_OK, null).ThrowOnError();
             _state = _MF_STREAM_STATE.MF_STREAM_STATE_STOPPED;
             return HRESULTS.S_OK;
         }
@@ -342,7 +342,7 @@ namespace VCamNetSampleSource
                             outputSample.Object.SetUnknown(MFConstants.MFSampleExtension_Token, token).ThrowOnError();
                         }
 
-                        queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MEMediaSample, Guid.Empty, HRESULTS.S_OK, outputSample.Object).ThrowOnError();
+                        queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0013_0001.MEMediaSample, Guid.Empty, HRESULTS.S_OK, outputSample.Object).ThrowOnError();
                     }
 
                     // we must do this sometimes, otherwise the allocator gets full too early

@@ -287,7 +287,7 @@ namespace VCamNetSampleSource
                             if (selected)
                             {
                                 ps.Object.SelectStream((uint)index).ThrowOnError();
-                                queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MENewStream, Guid.Empty, HRESULTS.S_OK, _streams[index]).ThrowOnError();
+                                queue.Object.QueueEventParamUnk((uint)__MIDL___MIDL_itf_mfobjects_0000_0013_0001.MENewStream, Guid.Empty, HRESULTS.S_OK, _streams[index]).ThrowOnError();
                                 descriptor.GetMediaTypeHandler(out var handler).ThrowOnError();
                                 handler.GetCurrentMediaType(out var type).ThrowOnError();
                                 _streams[index].Start(type).ThrowOnError();
@@ -302,7 +302,7 @@ namespace VCamNetSampleSource
 
                     using var pv = new PropVariant(time);
                     var detached = pv.Detached;
-                    queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MESourceStopped, Guid.Empty, HRESULTS.S_OK, detached).ThrowOnError();
+                    queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0013_0001.MESourceStopped, Guid.Empty, HRESULTS.S_OK, detached).ThrowOnError();
                     return HRESULTS.S_OK;
                 }
             }
@@ -337,7 +337,7 @@ namespace VCamNetSampleSource
 
                     using var pv = new PropVariant(time);
                     var detached = pv.Detached;
-                    queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0012_0001.MESourceStopped, Guid.Empty, HRESULTS.S_OK, detached).ThrowOnError();
+                    queue.Object.QueueEventParamVar((uint)__MIDL___MIDL_itf_mfobjects_0000_0013_0001.MESourceStopped, Guid.Empty, HRESULTS.S_OK, detached).ThrowOnError();
                     return HRESULTS.S_OK;
                 }
             }
