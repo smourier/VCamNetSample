@@ -507,7 +507,7 @@ namespace VCamNetSampleSource
                     }
 
                     pdwInputStreamID = dwOutputStreamID;
-                    peUsage = _streams[index].GetAllocatorUsage();
+                    peUsage = MediaStream.GetAllocatorUsage();
                     return HRESULTS.S_OK;
                 }
             }

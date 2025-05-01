@@ -188,6 +188,7 @@ namespace DebuggerAttach
         }
 
         [DllImport("ole32")]
+#pragma warning disable IDE0079 // Remove unnecessary suppression
 #pragma warning disable SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
         private static extern int GetRunningObjectTable(int reserved, out IRunningObjectTable pprot);
 
@@ -200,5 +201,6 @@ namespace DebuggerAttach
         [DllImport("shell32")]
         private static extern IntPtr CommandLineToArgvW([MarshalAs(UnmanagedType.LPWStr)] string cmdLine, out int numArgs);
 #pragma warning restore SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
+#pragma warning restore IDE0079 // Remove unnecessary suppression
     }
 }

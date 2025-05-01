@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using System.Threading;
 using DirectN;
 using VCamNetSampleSource.Utilities;
@@ -126,7 +125,7 @@ namespace VCamNetSampleSource
             return HRESULTS.S_OK;
         }
 
-        public MFSampleAllocatorUsage GetAllocatorUsage() => MFSampleAllocatorUsage.MFSampleAllocatorUsage_UsesProvidedAllocator;
+        public static MFSampleAllocatorUsage GetAllocatorUsage() => MFSampleAllocatorUsage.MFSampleAllocatorUsage_UsesProvidedAllocator;
         public HRESULT SetAllocator(object allocator)
         {
             if (allocator == null)
@@ -159,12 +158,12 @@ namespace VCamNetSampleSource
             return hr;
         }
 
-        public CustomQueryInterfaceResult GetInterface(ref Guid iid, out nint ppv)
-        {
-            EventProvider.LogInfo($"iid{iid:B}");
-            ppv = 0;
-            return CustomQueryInterfaceResult.NotHandled;
-        }
+        //public CustomQueryInterfaceResult GetInterface(ref Guid iid, out nint ppv)
+        //{
+        //    EventProvider.LogInfo($"iid{iid:B}");
+        //    ppv = 0;
+        //    return CustomQueryInterfaceResult.NotHandled;
+        //}
 
         public HRESULT GetEvent(uint flags, out IMFMediaEvent evt)
         {
