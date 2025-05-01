@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VCamNetSampleSource", "VCam
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DebuggerAttach", "DebuggerAttach\DebuggerAttach.csproj", "{079AC6DC-1D07-47BA-87E8-3AE4108CAD90}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCamNetSampleSourceAOT", "VCamNetSampleSourceAOT\VCamNetSampleSourceAOT.csproj", "{E7301E7E-AFDF-4A51-A7E5-284C73555B2F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCamNetSampleAOT", "VCamNetSampleAOT\VCamNetSampleAOT.csproj", "{254B8B29-BC94-1282-0122-AF524A10B9A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +31,14 @@ Global
 		{079AC6DC-1D07-47BA-87E8-3AE4108CAD90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{079AC6DC-1D07-47BA-87E8-3AE4108CAD90}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{079AC6DC-1D07-47BA-87E8-3AE4108CAD90}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7301E7E-AFDF-4A51-A7E5-284C73555B2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7301E7E-AFDF-4A51-A7E5-284C73555B2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7301E7E-AFDF-4A51-A7E5-284C73555B2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7301E7E-AFDF-4A51-A7E5-284C73555B2F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{254B8B29-BC94-1282-0122-AF524A10B9A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{254B8B29-BC94-1282-0122-AF524A10B9A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{254B8B29-BC94-1282-0122-AF524A10B9A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{254B8B29-BC94-1282-0122-AF524A10B9A0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
