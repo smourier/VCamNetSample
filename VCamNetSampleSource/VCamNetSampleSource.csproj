@@ -5,6 +5,7 @@
 		<Nullable>enable</Nullable>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<EnableComHosting>true</EnableComHosting>
+		<Platforms>x64;x86;ARM64</Platforms>
 	</PropertyGroup>
 
 	<ItemGroup>

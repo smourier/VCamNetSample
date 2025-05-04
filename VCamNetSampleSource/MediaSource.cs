@@ -412,8 +412,6 @@ namespace VCamNetSampleSource
                     }
 
                     attributes = _streams[index]; ;
-                    var hr = HRESULTS.S_OK;
-                    EventProvider.LogInfo($" => {hr}");
                     return HRESULTS.S_OK;
                 }
             }
@@ -482,32 +480,32 @@ namespace VCamNetSampleSource
             }
         }
 
-        public HRESULT GetAllocatorUsage(uint dwOutputStreamID, out uint pdwInputStreamID, out MFSampleAllocatorUsage peUsage)
+        public HRESULT GetAllocatorUsage(uint outputStreamID, out uint inputStreamID, out MFSampleAllocatorUsage usage)
         {
-            EventProvider.LogInfo($"dwOutputStreamID:{dwOutputStreamID}");
+            EventProvider.LogInfo($"dwOutputStreamID:{outputStreamID}");
             try
             {
                 lock (_lock)
                 {
-                    if (dwOutputStreamID >= _streams.Length)
+                    if (outputStreamID >= _streams.Length)
                     {
-                        pdwInputStreamID = 0;
-                        peUsage = 0;
+                        inputStreamID = 0;
+                        usage = 0;
                         EventProvider.LogInfo($"E_FAIL");
                         return HRESULTS.E_FAIL;
                     }
 
-                    var index = GetStreamIndexById(dwOutputStreamID);
+                    var index = GetStreamIndexById(outputStreamID);
                     if (index < 0)
                     {
-                        pdwInputStreamID = 0;
-                        peUsage = 0;
+                        inputStreamID = 0;
+                        usage = 0;
                         EventProvider.LogInfo($"E_FAIL");
                         return HRESULTS.E_FAIL;
                     }
 
-                    pdwInputStreamID = dwOutputStreamID;
-                    peUsage = MediaStream.GetAllocatorUsage();
+                    inputStreamID = outputStreamID;
+                    usage = MediaStream.GetAllocatorUsage();
                     return HRESULTS.S_OK;
                 }
             }
@@ -525,25 +523,25 @@ namespace VCamNetSampleSource
             return HRESULTS.E_NOINTERFACE;
         }
 
-        public HRESULT KsProperty(ref KSIDENTIFIER roperty, uint propertyLength, nint propertyData, uint dataLength, out uint bytesReturned)
+        public HRESULT KsProperty(ref KSIDENTIFIER property, uint propertyLength, nint propertyData, uint dataLength, out uint bytesReturned)
         {
-            EventProvider.LogInfo($"Property:{roperty.GetMFName()} PropertyLength:{propertyLength} DataLength:{dataLength}");
+            EventProvider.LogInfo($"Property:{property.GetMFName()} PropertyLength:{propertyLength} DataLength:{dataLength}");
             bytesReturned = 0;
-            return HRESULT.FromWin32(Utilities.Constants.ERROR_SET_NOT_FOUND);
+            return HRESULT.FromWin32(Constants.ERROR_SET_NOT_FOUND);
         }
 
         public HRESULT KsMethod(ref KSIDENTIFIER method, uint methodLength, nint methodData, uint dataLength, out uint bytesReturned)
         {
             EventProvider.LogInfo($"Method:{method.GetMFName()} PropertyLength:{methodLength} DataLength:{dataLength}");
             bytesReturned = 0;
-            return HRESULT.FromWin32(Utilities.Constants.ERROR_SET_NOT_FOUND);
+            return HRESULT.FromWin32(Constants.ERROR_SET_NOT_FOUND);
         }
 
         public HRESULT KsEvent(ref KSIDENTIFIER evt, uint eventLength, nint eventData, uint dataLength, out uint bytesReturned)
         {
             EventProvider.LogInfo($"Event:{evt.GetMFName()} PropertyLength:{eventLength} DataLength:{dataLength}");
             bytesReturned = 0;
-            return HRESULT.FromWin32(Utilities.Constants.ERROR_SET_NOT_FOUND);
+            return HRESULT.FromWin32(Constants.ERROR_SET_NOT_FOUND);
         }
 
         protected override void Dispose(bool disposing)

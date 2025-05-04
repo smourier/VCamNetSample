@@ -271,7 +271,7 @@ namespace VCamNetSampleSource
             }
         }
 
-        public HRESULT GetMediaSource(out IMFMediaSource ppMediaSource)
+        public HRESULT GetMediaSource(out IMFMediaSource mediaSource)
         {
             EventProvider.LogInfo();
             lock (_lock)
@@ -279,11 +279,11 @@ namespace VCamNetSampleSource
                 var source = _source;
                 if (source == null)
                 {
-                    ppMediaSource = null!;
+                    mediaSource = null!;
                     return HRESULTS.MF_E_SHUTDOWN;
                 }
 
-                ppMediaSource = source;
+                mediaSource = source;
                 var hr = HRESULTS.S_OK;
                 EventProvider.LogInfo($" => {hr}");
                 return hr;
