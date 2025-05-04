@@ -11,24 +11,33 @@
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<ApplicationIcon>VCamSampleAOT.ico</ApplicationIcon>
 		<Platforms>x64;x86;ARM64</Platforms>
+
+		<!-- https://github.com/dotnet/runtime/blob/main/docs/workflow/trimming/feature-switches.md -->
+		<!-- this is needed for the .NET dll (not AOT published) to be loaded by the native thunk dll -->
+		<!-- specifying this with RuntimeHostConfigurationOption doesn't seem to work -->
+		<_EnableConsumingManagedCodeFromNativeHosting>true</_EnableConsumingManagedCodeFromNativeHosting>
+
+		<!-- this is needed for AOT trimming to keep ProgId attributes -->
+		<!-- https://github.com/dotnet/runtime/blob/main/src/libraries/System.Private.CoreLib/src/ILLink/ILLink.LinkAttributes.Shared.xml -->
+		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Include="..\VCamNetSampleSource\Shared.cs" Link="Shared.cs" />
-	  <Compile Include="..\VCamNetSample\Properties\AssemblyVersionInfo.cs" Link="Properties\AssemblyVersionInfo.cs" />
+		<Compile Include="..\VCamNetSampleSource\Shared.cs" Link="Shared.cs" />
+		<Compile Include="..\VCamNetSample\Properties\AssemblyVersionInfo.cs" Link="Properties\AssemblyVersionInfo.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Content Include="VCamSampleAOT.ico" />
+		<Content Include="VCamSampleAOT.ico" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Reference Include="DirectN">
-	    <HintPath>..\VCamNetSampleSourceAOT\External\DirectN.dll</HintPath>
-	  </Reference>
-	  <Reference Include="DirectN.Extensions">
-	    <HintPath>..\VCamNetSampleSourceAOT\External\DirectN.Extensions.dll</HintPath>
-	  </Reference>
+		<Reference Include="DirectN">
+			<HintPath>..\VCamNetSampleSourceAOT\External\DirectN.dll</HintPath>
+		</Reference>
+		<Reference Include="DirectN.Extensions">
+			<HintPath>..\VCamNetSampleSourceAOT\External\DirectN.Extensions.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>

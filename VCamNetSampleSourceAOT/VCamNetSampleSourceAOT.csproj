@@ -63,12 +63,6 @@
 		<Using Include="Windows.ApplicationModel" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<None Update="External\AotNetComHost.x64.dll">
-			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
-
 	<Target Name="AotNetComHost" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
 		<ItemGroup>
 			<AotNetComHost Include="$(ProjectDir)External\AotNetComHost.$(Platform).dll" />
