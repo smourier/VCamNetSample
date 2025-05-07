@@ -32,14 +32,11 @@ public static partial class ComHosting
     {
         var clsid = *(Guid*)rclsid;
         var iid = *(Guid*)riid;
-        var hr = GetClassObject(clsid, iid, out var obj);
-        if (hr != Constants.S_OK)
-            return hr;
-
-        var unk = _wrappers.GetOrCreateComInterfaceForObject(obj!, CreateComInterfaceFlags.None);
+        GetClassObject(clsid, iid, out var obj);
+        var unk = DirectN.Extensions.Com.ComObject.GetOrCreateComInstance(obj, iid);
         *(nint*)ppv = unk;
-        Trace($"unk:{unk}");
-        return Constants.S_OK;
+        Trace($"unk:{obj}");
+        return unk == 0 ? Constants.E_NOINTERFACE : Constants.S_OK;
     });
 
     // handles installation and setup for a module.
@@ -102,7 +99,7 @@ public static partial class ComHosting
         return Constants.S_OK;
     }
 
-    private static HRESULT GetClassObject(Guid clsid, Guid iid, out object? ppv)
+    private static void GetClassObject(Guid clsid, Guid iid, out object? ppv)
     {
         Trace($"Path:{DllPath} CLSID:{clsid} IID:{iid}");
         foreach (var type in ComTypes)
@@ -112,12 +109,10 @@ public static partial class ComHosting
             {
                 ppv = new ClassFactory(type);
                 Trace($"ppv:{ppv}");
-                return Constants.S_OK;
+                return;
             }
         }
         ppv = null;
-        Trace($"E_NOINTERFACE");
-        return Constants.E_NOINTERFACE;
     }
 
     public static bool InstallInHkcu { get; set; } = false;
@@ -130,7 +125,6 @@ public static partial class ComHosting
         => DllPath;
 #endif
 
-    internal static readonly StrategyBasedComWrappers _wrappers = new();
     private const string ClassesRegistryKey = @"Software\Classes";
     private const string ClsidRegistryKey = ClassesRegistryKey + @"\CLSID";
 
@@ -208,7 +202,6 @@ public static partial class ComHosting
     [UnmanagedCallersOnly(EntryPoint = nameof(DllThunkInit))]
     public unsafe static uint DllThunkInit(nint thunkDllPathPtr)
     {
-        var types = ComTypes;
         _thunkDllPath = Marshal.PtrToStringUni(thunkDllPathPtr);
         Trace($"Path:{DllPath} ThunkDllPathPtr:{_thunkDllPath}");
         return 0;

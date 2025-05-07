@@ -43,12 +43,14 @@
 		<Using Include="DirectN.Extensions.Utilities" />
 		<Using Include="Microsoft.Win32" />
 		<Using Include="System" />
+		<Using Include="System.Collections" />
 		<Using Include="System.Collections.Concurrent" />
 		<Using Include="System.Collections.Generic" />
 		<Using Include="System.ComponentModel" />
 		<Using Include="System.Diagnostics.CodeAnalysis" />
 		<Using Include="System.Globalization" />
 		<Using Include="System.IO" />
+		<Using Include="System.Linq" />
 		<Using Include="System.Numerics" />
 		<Using Include="System.Reflection" />
 		<Using Include="System.Runtime.Versioning" />
