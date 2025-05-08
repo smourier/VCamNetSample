@@ -61,11 +61,10 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
     {
         for (var i = 0; i < _streams.Length; i++)
         {
-            if (_streams[i].GetStreamDescriptor(out var obj).IsError)
+            if (_streams[i].GetStreamDescriptor(out var descriptor).IsError)
                 return -1;
 
-            using var desc = new ComObject<IMFStreamDescriptor>(obj);
-            if (desc.Object.GetStreamIdentifier(out var sid).IsError)
+            if (descriptor.GetStreamIdentifier(out var sid).IsError)
                 return -1;
 
             if (sid == id)

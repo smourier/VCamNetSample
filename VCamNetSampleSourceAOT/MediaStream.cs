@@ -71,9 +71,12 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
             }
 
             Functions.MFCreateStreamDescriptor(index, mediaTypes.Length(), mediaTypes, out var descriptor).ThrowOnError();
-            descriptor.GetMediaTypeHandler(out var handler).ThrowOnError();
-            handler.SetCurrentMediaType(mediaTypes[0]).ThrowOnError();
+            descriptor.GetMediaTypeHandler(out var obj).ThrowOnError();
+            using var handler = new ComObject<IMFMediaTypeHandler>(obj);
+            handler.Object.SetCurrentMediaType(mediaTypes[0]).ThrowOnError();
             _descriptor = new ComObject<IMFStreamDescriptor>(descriptor);
+
+            nv12Type?.Dispose();
         }
         catch (Exception e)
         {
@@ -127,21 +130,20 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
     }
 
     public static MFSampleAllocatorUsage GetAllocatorUsage() => MFSampleAllocatorUsage.MFSampleAllocatorUsage_UsesProvidedAllocator;
-    public HRESULT SetAllocator(object allocator)
+    public HRESULT SetAllocator(nint allocator)
     {
-        if (allocator == null)
+        if (allocator == 0)
         {
             ComHosting.Trace($"E_POINTER");
             return Constants.E_POINTER;
         }
 
-        if (allocator is not IMFVideoSampleAllocatorEx aex)
+        _allocator = DirectN.Extensions.Com.ComObject.FromPointer<IMFVideoSampleAllocatorEx>(allocator);
+        if (_allocator == null)
         {
             ComHosting.Trace($"E_NOINTERFACE");
             return Constants.E_NOINTERFACE;
         }
-
-        _allocator = new ComObject<IMFVideoSampleAllocatorEx>(aex);
         return Constants.S_OK;
     }
 
@@ -272,7 +274,6 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
                     return Constants.MF_E_SHUTDOWN;
                 }
 
-                descriptor.AddRef();
                 streamDescriptor = descriptor.Object;
                 var hr = Constants.S_OK;
                 ComHosting.Trace($" => {hr}");
