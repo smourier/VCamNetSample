@@ -2,7 +2,7 @@
 
 [Guid(Shared.CLSID_VCamNetAOT)]
 [GeneratedComClass]
-public partial class Activator : IMFActivate, IMFAttributes, ICustomQueryInterface
+public partial class Activator : IMFActivate, IMFAttributes
 {
     private readonly MFAttributes _attributes; // if we derive from it, C#/WinRT doesn't see it for some reason
 
@@ -11,13 +11,6 @@ public partial class Activator : IMFActivate, IMFAttributes, ICustomQueryInterfa
         ComHosting.Trace();
         _attributes = new MFAttributes(nameof(Activator));
         SetDefaultAttributes(_attributes.NativeObject);
-    }
-
-    public CustomQueryInterfaceResult GetInterface(ref Guid iid, out nint ppv)
-    {
-        ComHosting.Trace($"Activator iid:{iid.GetConstantName()}");
-        ppv = 0;
-        return CustomQueryInterfaceResult.NotHandled;
     }
 
     private static void SetDefaultAttributes(IMFAttributes attributes)

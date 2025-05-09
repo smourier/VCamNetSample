@@ -573,16 +573,8 @@ public partial class MediaSource :
     public void Dispose()
     {
         ComHosting.Trace();
-        if (_streams != null)
-        {
-            Interlocked.Exchange(ref _streams, null)?.Dispose();
-        }
-
-        if (_attributes != null)
-        {
-            Interlocked.Exchange(ref _attributes, null)?.Dispose();
-        }
-
+        _streams?.Dispose();
+        _attributes?.Dispose();
         Interlocked.Exchange(ref _queue, null)?.Dispose();
         Interlocked.Exchange(ref _presentationDescriptor, null)?.Dispose();
         GC.SuppressFinalize(this);
