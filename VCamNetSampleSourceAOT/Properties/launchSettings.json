@@ -2,7 +2,8 @@
   "profiles": {
     "Profile 1": {
       "commandName": "Executable",
-      "executablePath": "E:\\smo\\GitHub\\VCamNetSample\\VCamNetSampleAOT\\bin\\Release\\net9.0\\publish\\win-x64\\VCamNetSampleAOT.exe"
+      "executablePath": "E:\\smo\\GitHub\\VCamNetSample\\VCamNetSampleAOT\\bin\\Release\\net9.0\\publish\\win-x64\\VCamNetSampleAOT.exe",
+      "nativeDebugging": true
     }
   }
 }

@@ -47,7 +47,7 @@ public class FrameGenerator : IDisposable
             }
         }
 
-        _blockBrushes = brushes.ToArray();
+        _blockBrushes = [.. brushes];
         _width = width;
         _height = height;
         return Constants.S_OK;
@@ -55,31 +55,33 @@ public class FrameGenerator : IDisposable
 
     private void SetConverterTypes(uint width, uint height)
     {
-        Functions.MFCreateMediaType(out var inputType).ThrowOnError();
-        inputType.SetGUID(Constants.MF_MT_MAJOR_TYPE, Constants.MFMediaType_Video).ThrowOnError();
-        inputType.SetGUID(Constants.MF_MT_SUBTYPE, Constants.MFVideoFormat_RGB32).ThrowOnError();
+        Functions.MFCreateMediaType(out var inputObj).ThrowOnError();
+        using var inputType = new ComObject<IMFMediaType>(inputObj);
+        inputType.Set(Constants.MF_MT_MAJOR_TYPE, Constants.MFMediaType_Video);
+        inputType.Set(Constants.MF_MT_SUBTYPE, Constants.MFVideoFormat_RGB32);
         inputType.SetSize(Constants.MF_MT_FRAME_SIZE, width, height);
-        _converter!.Object.SetInputType(0, inputType, 0).ThrowOnError();
+        _converter!.Object.SetInputType(0, inputType.Object, 0).ThrowOnError();
 
-        Functions.MFCreateMediaType(out var outputType).ThrowOnError();
-        outputType.SetGUID(Constants.MF_MT_MAJOR_TYPE, Constants.MFMediaType_Video).ThrowOnError();
-        outputType.SetGUID(Constants.MF_MT_SUBTYPE, Constants.MFVideoFormat_NV12).ThrowOnError();
+        Functions.MFCreateMediaType(out var outputObj).ThrowOnError();
+        using var outputType = new ComObject<IMFMediaType>(inputObj);
+        outputType.Set(Constants.MF_MT_MAJOR_TYPE, Constants.MFMediaType_Video);
+        outputType.Set(Constants.MF_MT_SUBTYPE, Constants.MFVideoFormat_NV12);
         outputType.SetSize(Constants.MF_MT_FRAME_SIZE, width, height);
-        _converter!.Object.SetOutputType(0, outputType, 0).ThrowOnError();
+        _converter!.Object.SetOutputType(0, outputType.Object, 0).ThrowOnError();
     }
 
-    public HRESULT SetD3DManager(object manager, uint width, uint height)
+    public HRESULT SetD3DManager(nint manager, uint width, uint height)
     {
-        if (manager == null)
+        if (manager == 0)
             return Constants.E_POINTER;
 
         if (width == 0 || height == 0)
             return Constants.E_INVALIDARG;
 
-        if (manager is not IMFDXGIDeviceManager dxgiManager)
-            return Constants.E_NOTIMPL;
+        _dxgiManager = DirectN.Extensions.Com.ComObject.FromPointer<IMFDXGIDeviceManager>(manager);
+        if (_dxgiManager == null)
+            return Constants.E_NOINTERFACE;
 
-        _dxgiManager = new ComObject<IMFDXGIDeviceManager>(dxgiManager);
         _dxgiManager.Object.OpenDeviceHandle(out _deviceHandle).ThrowOnError();
         _dxgiManager.Object.GetVideoService(_deviceHandle, typeof(ID3D11Device).GUID, out var unk).ThrowOnError();
 
@@ -97,19 +99,23 @@ public class FrameGenerator : IDisposable
         });
 
         // create a D2D1 render target from 2D GPU surface
-        var surface = new ComObject<IDXGISurface>((IDXGISurface)_texture.Object, false);
+        var surface = _texture.As<IDXGISurface>()!;
         using var factory = D2D1Functions.D2D1CreateFactory(D2D1_FACTORY_TYPE.D2D1_FACTORY_TYPE_MULTI_THREADED);
         _renderTarget = factory.CreateDxgiSurfaceRenderTarget(surface, new D2D1_RENDER_TARGET_PROPERTIES { pixelFormat = new D2D1_PIXEL_FORMAT { alphaMode = D2D1_ALPHA_MODE.D2D1_ALPHA_MODE_PREMULTIPLIED } });
 
         CreateRenderTargetResources(width, height).ThrowOnError();
 
         // create GPU RGB => NV12 converter
-        _converter = new ComObject<IMFTransform>((IMFTransform)System.Activator.CreateInstance(Type.GetTypeFromCLSID(Constants.CLSID_VideoProcessorMFT)!)!);
+        _converter = DirectN.Extensions.Com.ComObject.CoCreate<IMFTransform>(Constants.CLSID_VideoProcessorMFT)!;
         SetConverterTypes(width, height);
 
         // make sure the video processor works on GPU
-        DirectN.Extensions.Com.ComObject.WithComInstance(manager, unk => _converter!.Object.ProcessMessage(MFT_MESSAGE_TYPE.MFT_MESSAGE_SET_D3D_MANAGER, (nuint)unk));
-        ComHosting.Trace("OK");
+        DirectN.Extensions.Com.ComObject.WithComInstance(_dxgiManager, unk =>
+        {
+            _converter.Object.ProcessMessage(MFT_MESSAGE_TYPE.MFT_MESSAGE_SET_D3D_MANAGER, (nuint)unk).ThrowOnError();
+        });
+
+        ComHosting.Trace($"w:{width} h:{height} OK");
         return Constants.S_OK;
     }
 
@@ -134,7 +140,7 @@ public class FrameGenerator : IDisposable
                 CreateRenderTargetResources(width, height).ThrowOnError();
 
                 // create CPU RGB => NV12 converter
-                _converter = new ComObject<IMFTransform>((IMFTransform)System.Activator.CreateInstance(Type.GetTypeFromCLSID(Constants.CLSID_CColorConvertDMO)!)!);
+                _converter = DirectN.Extensions.Com.ComObject.CoCreate<IMFTransform>(Constants.CLSID_CColorConvertDMO);
                 SetConverterTypes(width, height);
             }
 
@@ -218,7 +224,7 @@ public class FrameGenerator : IDisposable
                     _prevTime = time;
                 }
 
-                var text = $"Format: {fmt}\n.NET Frame#: {_frameCount}\nFps: {_fps}\nResolution: {_width} x {_height}";
+                var text = $"Format: {fmt}\n.NET AOT Frame#: {_frameCount}\nFps: {_fps}\nResolution: {_width} x {_height}";
 
                 using var layout = _dwrite.CreateTextLayout(_textFormat, text, text.Length, _width, _height);
                 _renderTarget.DrawTextLayout(new D2D_POINT_2F(0, 0), layout, _whiteBrush);
@@ -234,7 +240,7 @@ public class FrameGenerator : IDisposable
                 // create a buffer from texture and add to sample
                 DirectN.Extensions.Com.ComObject.WithComInstance(_texture, unk =>
                 {
-                    Functions.MFCreateDXGISurfaceBuffer(typeof(IMFMediaBuffer).GUID, unk, 0, false, out var obj).ThrowOnError();
+                    Functions.MFCreateDXGISurfaceBuffer(typeof(ID3D11Texture2D).GUID, unk, 0, false, out var obj).ThrowOnError();
                     using var mediaBuffer = new ComObject<IMFMediaBuffer>(obj);
                     sample.Object.AddBuffer(mediaBuffer.Object).ThrowOnError();
                 });

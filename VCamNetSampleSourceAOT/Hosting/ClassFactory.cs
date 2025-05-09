@@ -14,11 +14,17 @@ public partial class ClassFactory : IClassFactory
     HRESULT IClassFactory.CreateInstance(nint pUnkOuter, in Guid riid, out nint ppvObject)
     {
         ComHosting.Trace($"pUnkOuter:{pUnkOuter} riid:{riid} Type:{Type.FullName}");
+        if (pUnkOuter != 0)
+        {
+            ppvObject = 0;
+            return Constants.CLASS_E_NOAGGREGATION;
+        }
 
-        // we should only instantiate classes that are declared in ComHosting.ComTypes
-#pragma warning disable IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
-        var obj = System.Activator.CreateInstance(Type, true);
-#pragma warning restore IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
+        object? obj = null;
+        if (Type == typeof(Activator))
+        {
+            obj = new Activator();
+        }
 
         var unk = DirectN.Extensions.Com.ComObject.GetOrCreateComInstance(obj, riid);
         ppvObject = unk;

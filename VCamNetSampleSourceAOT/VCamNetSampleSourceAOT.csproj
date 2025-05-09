@@ -23,7 +23,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="..\VCamNetSampleSource\Shared.cs" Link="Shared.cs" />
 		<Compile Include="..\VCamNetSample\Properties\AssemblyVersionInfo.cs" Link="Properties\AssemblyVersionInfo.cs" />
 	</ItemGroup>
 
@@ -59,7 +58,6 @@
 		<Using Include="System.Runtime.InteropServices.Marshalling" />
 		<Using Include="System.Security" />
 		<Using Include="System.Threading" />
-		<Using Include="VCamNetSampleSource" />
 		<Using Include="VCamNetSampleSourceAOT.Hosting" />
 		<Using Include="VCamNetSampleSourceAOT.Utilities" />
 		<Using Include="Windows.ApplicationModel" />

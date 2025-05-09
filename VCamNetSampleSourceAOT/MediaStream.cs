@@ -1,13 +1,13 @@
 ﻿namespace VCamNetSampleSourceAOT;
 
 [GeneratedComClass]
-public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, IDisposable
+public partial class MediaStream : IMFAttributes, IMFMediaStream2, IMFMediaStream, IMFMediaEventGenerator, IKsControl, IDisposable
 {
     public const int NUM_IMAGE_COLS = 1280;
     public const int NUM_IMAGE_ROWS = 960;
     public const int NUM_ALLOCATOR_SAMPLES = 10;
 
-    private readonly MFAttributes _attributes; // if we derive from it, C#/WinRT doesn't see it for some reason
+    internal MFAttributes _attributes; // if we derive from it, C#/WinRT doesn't see it for some reason
     private readonly Lock _lock = new();
     private readonly MediaSource _source;
     private IComObject<IMFMediaEventQueue>? _queue;
@@ -22,7 +22,7 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
         try
         {
             ArgumentNullException.ThrowIfNull(source);
-            _attributes = new MFAttributes(nameof(Activator));
+            _attributes = new MFAttributes(nameof(MediaStream));
             _source = source;
 
             _attributes.Set(Constants.MF_DEVICESTREAM_STREAM_CATEGORY, Constants.PINNAME_VIDEO_CAPTURE);
@@ -76,7 +76,7 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
             handler.Object.SetCurrentMediaType(mediaTypes[0]).ThrowOnError();
             _descriptor = new ComObject<IMFStreamDescriptor>(descriptor);
 
-            nv12Type?.Dispose();
+            mediaTypes.Dispose();
         }
         catch (Exception e)
         {
@@ -100,14 +100,14 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
             allocator.Object.InitializeSampleAllocator(NUM_ALLOCATOR_SAMPLES, type).ThrowOnError();
 
             type.GetGUID(Constants.MF_MT_SUBTYPE, out _format).ThrowOnError();
-            ComHosting.Trace("Format: " + _format.GetMFName());
+            ComHosting.Trace("Format: " + _format.GetConstantName());
         }
 
         // at this point, set D3D manager may have not been called
         // so we want to create a D2D1 renter target anyway
         _generator.EnsureRenderTarget(NUM_IMAGE_COLS, NUM_IMAGE_ROWS).ThrowOnError();
 
-        queue.Object.QueueEventParamVar((uint)MF_EVENT_TYPE.MEStreamStarted, Guid.Empty, Constants.S_OK, Unsafe.NullRef<PROPVARIANT>()).ThrowOnError();
+        queue.Object.QueueEventParamVar((uint)MF_EVENT_TYPE.MEStreamStarted, Guid.Empty, Constants.S_OK, 0).ThrowOnError();
         _state = MF_STREAM_STATE.MF_STREAM_STATE_RUNNING;
         ComHosting.Trace("Started");
         return Constants.S_OK;
@@ -124,7 +124,7 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
         }
 
         allocator.Object.UninitializeSampleAllocator();
-        queue.Object.QueueEventParamVar((uint)MF_EVENT_TYPE.MEStreamStopped, Guid.Empty, Constants.S_OK, Unsafe.NullRef<PROPVARIANT>()).ThrowOnError();
+        queue.Object.QueueEventParamVar((uint)MF_EVENT_TYPE.MEStreamStopped, Guid.Empty, Constants.S_OK, 0).ThrowOnError();
         _state = MF_STREAM_STATE.MF_STREAM_STATE_STOPPED;
         return Constants.S_OK;
     }
@@ -157,8 +157,7 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
         }
 
         allocator.Object.SetDirectXManager(manager).ThrowOnError();
-        var hr = _generator.SetD3DManager(manager, NUM_IMAGE_COLS, NUM_IMAGE_ROWS);
-        return hr;
+        return _generator.SetD3DManager(manager, NUM_IMAGE_COLS, NUM_IMAGE_ROWS);
     }
 
     public HRESULT BeginGetEvent(IMFAsyncCallback callback, nint state)
@@ -296,22 +295,28 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
 
     public HRESULT KsEvent(in KSIDENTIFIER Event, uint EventLength, nint EventData, uint DataLength, out uint BytesReturned)
     {
-        throw new NotImplementedException();
+        ComHosting.Trace($"Stream Event:{Event.GetDebugName()} Length:{EventLength} DataLength:{DataLength}");
+        BytesReturned = 0;
+        return HRESULT.FromWin32(WIN32_ERROR.ERROR_SET_NOT_FOUND);
     }
 
     public HRESULT KsMethod(in KSIDENTIFIER Method, uint MethodLength, nint MethodData, uint DataLength, out uint BytesReturned)
     {
-        throw new NotImplementedException();
+        ComHosting.Trace($"Stream Method:{Method.GetDebugName()} Length:{MethodLength} DataLength:{DataLength}");
+        BytesReturned = 0;
+        return HRESULT.FromWin32(WIN32_ERROR.ERROR_SET_NOT_FOUND);
     }
 
     public HRESULT KsProperty(in KSIDENTIFIER Property, uint PropertyLength, nint PropertyData, uint DataLength, out uint BytesReturned)
     {
-        throw new NotImplementedException();
+        ComHosting.Trace($"Stream Property:{Property.GetDebugName()} Length:{PropertyLength} DataLength:{DataLength}");
+        BytesReturned = 0;
+        return HRESULT.FromWin32(WIN32_ERROR.ERROR_SET_NOT_FOUND);
     }
 
-    public HRESULT QueueEvent(uint type, in Guid extendedType, HRESULT hrStatus, in PROPVARIANT value)
+    public HRESULT QueueEvent(uint type, in Guid extendedType, HRESULT hrStatus, nint value)
     {
-        ComHosting.Trace($"type:{type} value:{value}");
+        ComHosting.Trace($"type:{type} extendedType:{extendedType.GetConstantName()} value:{value}");
         try
         {
             lock (_lock)
@@ -337,6 +342,7 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
 
     public HRESULT RequestSample(nint token)
     {
+        //ComHosting.Trace($"token:{token}");
         try
         {
             lock (_lock)
@@ -420,6 +426,7 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
     public void Dispose()
     {
         ComHosting.Trace();
+        Interlocked.Exchange(ref _attributes!, null)?.Dispose();
         Interlocked.Exchange(ref _descriptor!, null)?.Dispose();
         Interlocked.Exchange(ref _queue!, null)?.Dispose();
         Interlocked.Exchange(ref _allocator!, null)?.Dispose();
@@ -429,7 +436,7 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IKsControl, I
 
     HRESULT IMFAttributes.Compare(IMFAttributes? pTheirs, MF_ATTRIBUTES_MATCH_TYPE MatchType, out BOOL pbResult) => ((IMFAttributes)_attributes).Compare(pTheirs, MatchType, out pbResult);
     HRESULT IMFAttributes.CompareItem(in Guid guidKey, in PROPVARIANT Value, out BOOL pbResult) => ((IMFAttributes)_attributes).CompareItem(guidKey, Value, out pbResult);
-    HRESULT IMFAttributes.CopyAllItems(IMFAttributes pDest) => ((IMFAttributes)_attributes).CopyAllItems(pDest);
+    HRESULT IMFAttributes.CopyAllItems(IMFAttributes? pDest) => ((IMFAttributes)_attributes).CopyAllItems(pDest);
     HRESULT IMFAttributes.DeleteAllItems() => ((IMFAttributes)_attributes).DeleteAllItems();
     HRESULT IMFAttributes.DeleteItem(in Guid guidKey) => ((IMFAttributes)_attributes).DeleteItem(guidKey);
     HRESULT IMFAttributes.GetAllocatedBlob(in Guid guidKey, out nint ppBuf, out uint pcbSize) => ((IMFAttributes)_attributes).GetAllocatedBlob(guidKey, out ppBuf, out pcbSize);

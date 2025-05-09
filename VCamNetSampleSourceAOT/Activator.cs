@@ -1,8 +1,8 @@
 ﻿namespace VCamNetSampleSourceAOT;
 
-[Guid(Shared.CLSID_VCamNet)]
+[Guid(Shared.CLSID_VCamNetAOT)]
 [GeneratedComClass]
-public partial class Activator : IMFActivate, IMFAttributes
+public partial class Activator : IMFActivate, IMFAttributes, ICustomQueryInterface
 {
     private readonly MFAttributes _attributes; // if we derive from it, C#/WinRT doesn't see it for some reason
 
@@ -11,6 +11,13 @@ public partial class Activator : IMFActivate, IMFAttributes
         ComHosting.Trace();
         _attributes = new MFAttributes(nameof(Activator));
         SetDefaultAttributes(_attributes.NativeObject);
+    }
+
+    public CustomQueryInterfaceResult GetInterface(ref Guid iid, out nint ppv)
+    {
+        ComHosting.Trace($"Activator iid:{iid.GetConstantName()}");
+        ppv = 0;
+        return CustomQueryInterfaceResult.NotHandled;
     }
 
     private static void SetDefaultAttributes(IMFAttributes attributes)
@@ -24,7 +31,7 @@ public partial class Activator : IMFActivate, IMFAttributes
         try
         {
             ppv = 0;
-            ComHosting.Trace($"{riid}");
+            ComHosting.Trace($"{riid.GetConstantName()}");
             if (riid == typeof(IMFMediaSourceEx).GUID || riid == typeof(IMFMediaSource).GUID)
             {
                 var source = new MediaSource();
@@ -34,7 +41,7 @@ public partial class Activator : IMFActivate, IMFAttributes
                     return Constants.S_OK;
             }
 
-            ComHosting.Trace($"{riid} => E_NOINTERFACE");
+            ComHosting.Trace($"{riid.GetConstantName()} => E_NOINTERFACE");
             return Constants.E_NOINTERFACE;
         }
         catch (Exception e)
@@ -59,7 +66,7 @@ public partial class Activator : IMFActivate, IMFAttributes
 
     HRESULT IMFAttributes.Compare(IMFAttributes? pTheirs, MF_ATTRIBUTES_MATCH_TYPE MatchType, out BOOL pbResult) => ((IMFAttributes)_attributes).Compare(pTheirs, MatchType, out pbResult);
     HRESULT IMFAttributes.CompareItem(in Guid guidKey, in PROPVARIANT Value, out BOOL pbResult) => ((IMFAttributes)_attributes).CompareItem(guidKey, Value, out pbResult);
-    HRESULT IMFAttributes.CopyAllItems(IMFAttributes pDest) => ((IMFAttributes)_attributes).CopyAllItems(pDest);
+    HRESULT IMFAttributes.CopyAllItems(IMFAttributes? pDest) => ((IMFAttributes)_attributes).CopyAllItems(pDest);
     HRESULT IMFAttributes.DeleteAllItems() => ((IMFAttributes)_attributes).DeleteAllItems();
     HRESULT IMFAttributes.DeleteItem(in Guid guidKey) => ((IMFAttributes)_attributes).DeleteItem(guidKey);
     HRESULT IMFAttributes.GetAllocatedBlob(in Guid guidKey, out nint ppBuf, out uint pcbSize) => ((IMFAttributes)_attributes).GetAllocatedBlob(guidKey, out ppBuf, out pcbSize);

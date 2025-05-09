@@ -4,6 +4,18 @@
 [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Interop code from somewhere else than .NET.")]
 public static partial class ComHosting
 {
+    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "Will mostly work in debug only")]
+    static ComHosting()
+    {
+        GuidNames.AddClassesGuids(typeof(IUnknown).Assembly);
+        GuidNames.AddClassesGuids(Assembly.GetExecutingAssembly());
+
+#if DEBUG
+        //MFAttributes.EnableTraces = true;
+        //ComObject.EnableTraces = true;
+#endif
+    }
+
     // the list of types that are COM types
     public static Type[] ComTypes { get; } =
     [
@@ -190,7 +202,13 @@ public static partial class ComHosting
         return parentKey.CreateSubKey(Path.GetFileName(name));
     }
 
-    public static void Trace(string? text = null, [CallerMemberName] string? methodName = null) => EventProvider.Default.WriteMessageEvent(methodName + ": " + text ?? string.Empty);
+    public static void Trace(string? text = null, [CallerMemberName] string? methodName = null, [CallerFilePath] string? filePath = null)
+    {
+#if DEBUG
+        var name = filePath != null ? Path.GetFileNameWithoutExtension(filePath) : null;
+        EventProvider.Default.WriteMessageEvent($"[{Environment.CurrentManagedThreadId}]{name}::{methodName}:{text}");
+#endif
+    }
 
 #if DEBUG
     // this only works if not published as AOT

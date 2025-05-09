@@ -23,9 +23,9 @@ namespace VCamNetSampleSource
         private IComObject<ID2D1SolidColorBrush>[]? _blockBrushes;
         private IComObject<IDWriteTextFormat>? _textFormat;
         private IComObject<IDWriteFactory>? _dwrite;
-        private IComObject<IMFTransform>? _converter;
+        private ComObject<IMFTransform>? _converter;
         private IComObject<IWICBitmap>? _bitmap;
-        private IComObject<IMFDXGIDeviceManager>? _dxgiManager;
+        private ComObject<IMFDXGIDeviceManager>? _dxgiManager;
 
         public bool HasD3DManager => _texture != null;
         public ulong FrameCount => _frameCount;
@@ -53,7 +53,7 @@ namespace VCamNetSampleSource
                 }
             }
 
-            _blockBrushes = brushes.ToArray();
+            _blockBrushes = [.. brushes];
             _width = width;
             _height = height;
             return HRESULTS.S_OK;

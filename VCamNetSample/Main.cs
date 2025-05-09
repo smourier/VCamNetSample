@@ -59,7 +59,7 @@ namespace VCamNetSample
 
             if (_camera != null)
             {
-                hr = _camera.Object.Remove();
+                _camera.Object.Remove();
             }
             MFFunctions.MFShutdown();
             Close();

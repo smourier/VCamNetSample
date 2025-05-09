@@ -1,18 +1,26 @@
 ﻿namespace VCamNetSampleSourceAOT;
 
 [GeneratedComClass]
-public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAllocatorControl, IMFGetService, IKsControl
+public partial class MediaSource :
+    IMFAttributes,
+    IMFMediaSourceEx,
+    IMFMediaSource,
+    IMFMediaEventGenerator,
+    IMFSampleAllocatorControl,
+    IMFGetService,
+    IKsControl,
+    IDisposable
 {
-    private readonly MFAttributes _attributes; // if we derive from it, C#/WinRT doesn't see it for some reason
     private readonly Lock _lock = new();
-    private readonly MediaStream[] _streams;
-    private readonly ComObject<IMFMediaEventQueue>? _queue;
-    private readonly ComObject<IMFPresentationDescriptor>? _presentationDescriptor;
+    private MFAttributes _attributes; // if we derive from it, C#/WinRT doesn't see it for some reason
+    private MediaStream[] _streams;
+    private ComObject<IMFMediaEventQueue>? _queue;
+    private ComObject<IMFPresentationDescriptor>? _presentationDescriptor;
 
     public MediaSource()
     {
         ComHosting.Trace();
-        _attributes = new MFAttributes(nameof(Activator));
+        _attributes = new MFAttributes(nameof(MediaSource));
         _streams = new MediaStream[1];
         _streams[0] = new MediaStream(this, 0);
 
@@ -47,7 +55,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
         for (var i = 0; i < descriptors.Length; i++)
         {
             _streams[i].GetStreamDescriptor(out var obj2).ThrowOnError();
-            descriptors[i] = new ComObject<IMFStreamDescriptor>(obj2);
+            descriptors[i] = new ComObject<IMFStreamDescriptor>(obj2, false);
         }
 
         Functions.MFCreatePresentationDescriptor(descriptors.Length, descriptors.Pointer, out var obj3).ThrowOnError();
@@ -75,7 +83,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
 
     public HRESULT BeginGetEvent(IMFAsyncCallback callback, nint state)
     {
-        ComHosting.Trace($"callback:{callback} state:{state}");
+        //ComHosting.Trace($"callback:{callback} state:{state}");
         try
         {
             lock (_lock)
@@ -88,7 +96,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
                 }
 
                 var hr = queue.Object.BeginGetEvent(callback, state);
-                ComHosting.Trace($" => {hr}");
+                //ComHosting.Trace($" => {hr}");
                 return hr;
             }
         }
@@ -127,7 +135,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
 
     public HRESULT EndGetEvent(IMFAsyncResult result, out IMFMediaEvent evt)
     {
-        ComHosting.Trace($"pResult:{result}");
+        //ComHosting.Trace($"pResult:{result}");
         try
         {
             lock (_lock)
@@ -141,7 +149,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
                 }
 
                 var hr = queue.Object.EndGetEvent(result, out evt);
-                ComHosting.Trace($" evt:{evt} => {hr}");
+                //ComHosting.Trace($" evt:{evt} => {hr}");
                 return hr;
             }
         }
@@ -225,9 +233,9 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
     public HRESULT GetSourceAttributes(out IMFAttributes attributes)
     {
         ComHosting.Trace();
-        attributes = this;
+        attributes = _attributes;
         var hr = Constants.S_OK;
-        ComHosting.Trace($" => {hr}");
+        ComHosting.Trace($"{Environment.NewLine}{_attributes.NativeObject.Trace(Environment.NewLine)} => {hr}");
         return hr;
     }
 
@@ -253,7 +261,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
                     return Constants.E_FAIL;
                 }
 
-                attributes = _streams[index];
+                attributes = _streams[index]._attributes;
                 return Constants.S_OK;
             }
         }
@@ -270,9 +278,9 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
         return Constants.MF_E_INVALID_STATE_TRANSITION;
     }
 
-    public HRESULT QueueEvent(uint type, in Guid extendedType, HRESULT hrStatus, in PROPVARIANT value)
+    public HRESULT QueueEvent(uint type, in Guid extendedType, HRESULT hrStatus, nint value)
     {
-        ComHosting.Trace($"type:{type} value:{value}");
+        ComHosting.Trace($"type:{type} extendedType:{extendedType.GetConstantName()} value:{value}");
         lock (_lock)
         {
             var queue = _queue;
@@ -372,15 +380,21 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
         }
     }
 
-    public HRESULT Start(IMFPresentationDescriptor presentationDescriptor, in Guid guidTimeFormat, in PROPVARIANT startPosition)
+    public unsafe HRESULT Start(IMFPresentationDescriptor? presentationDescriptor, nint guidTimeFormat, nint startPosition)
     {
         try
         {
             ComHosting.Trace($"presentationDescriptor:{presentationDescriptor} guidTimeFormat:{guidTimeFormat} startPosition:{startPosition}");
-            if (guidTimeFormat != Guid.Empty)
+            ArgumentNullException.ThrowIfNull(presentationDescriptor);
+
+            if (guidTimeFormat != 0)
             {
-                ComHosting.Trace($"E_INVALIDARG");
-                return Constants.E_INVALIDARG;
+                var format = *(Guid*)guidTimeFormat;
+                if (format != Guid.Empty)
+                {
+                    ComHosting.Trace($"E_INVALIDARG");
+                    return Constants.E_INVALIDARG;
+                }
             }
 
             lock (_lock)
@@ -405,7 +419,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
                 for (var i = 0; i < count; i++)
                 {
                     presentationDescriptor.GetStreamDescriptorByIndex((uint)i, out var selected, out var obj).ThrowOnError();
-                    using var descriptor = new ComObject<IMFStreamDescriptor>(obj);
+                    var descriptor = new ComObject<IMFStreamDescriptor>(obj, false);
                     descriptor.Object.GetStreamIdentifier(out var id).ThrowOnError();
 
                     var index = GetStreamIndexById(id);
@@ -413,7 +427,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
                         return Constants.E_INVALIDARG;
 
                     ps.Object.GetStreamDescriptorByIndex((uint)index, out var thisSelected, out var obj2).ThrowOnError();
-                    using var thisDescriptor = new ComObject<IMFStreamDescriptor>(obj2);
+                    var thisDescriptor = new ComObject<IMFStreamDescriptor>(obj2, false);
                     _streams[i].GetStreamState(out var state).ThrowOnError();
 
                     if (thisSelected && state == MF_STREAM_STATE.MF_STREAM_STATE_STOPPED)
@@ -430,10 +444,10 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
                         if (selected)
                         {
                             ps.Object.SelectStream((uint)index).ThrowOnError();
-                            DirectN.Extensions.Com.ComObject.WithComInstance(_streams[index], unk =>
+                            DirectN.Extensions.Com.ComObject.WithComInstanceOfType<IMFMediaStream>(_streams[index], unk =>
                             {
                                 queue.Object.QueueEventParamUnk((uint)MF_EVENT_TYPE.MENewStream, Guid.Empty, Constants.S_OK, unk).ThrowOnError();
-                            });
+                            }, createIfNeeded: true);
 
                             descriptor.Object.GetMediaTypeHandler(out var objHandler).ThrowOnError();
                             using var handler = new ComObject<IMFMediaTypeHandler>(objHandler);
@@ -451,7 +465,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
 
                 using var pv = new PropVariant(time);
                 var detached = pv.Detached;
-                queue.Object.QueueEventParamVar((uint)MF_EVENT_TYPE.MESourceStopped, Guid.Empty, Constants.S_OK, detached).ThrowOnError();
+                queue.Object.QueueEventParamVar((uint)MF_EVENT_TYPE.MESourceStopped, Guid.Empty, Constants.S_OK, (nint)(&detached)).ThrowOnError();
                 return Constants.S_OK;
             }
         }
@@ -462,7 +476,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
         }
     }
 
-    public HRESULT Stop()
+    public unsafe HRESULT Stop()
     {
         try
         {
@@ -486,7 +500,7 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
 
                 using var pv = new PropVariant(time);
                 var detached = pv.Detached;
-                queue.Object.QueueEventParamVar((uint)MF_EVENT_TYPE.MESourceStopped, Guid.Empty, Constants.S_OK, detached).ThrowOnError();
+                queue.Object.QueueEventParamVar((uint)MF_EVENT_TYPE.MESourceStopped, Guid.Empty, Constants.S_OK, (nint)(&detached)).ThrowOnError();
                 return Constants.S_OK;
             }
         }
@@ -499,35 +513,35 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
 
     public HRESULT GetService(in Guid guidService, in Guid riid, out nint ppvObject)
     {
-        ComHosting.Trace($"guidService:{guidService} riid:{riid}");
+        ComHosting.Trace($"guidService:{guidService.GetConstantName()} riid:{riid.GetConstantName()}");
         ppvObject = 0;
         return Constants.E_NOINTERFACE;
     }
 
     public HRESULT KsEvent(in KSIDENTIFIER Event, uint EventLength, nint EventData, uint DataLength, out uint BytesReturned)
     {
-        ComHosting.Trace($"Property:{Event.GetMFName()} PropertyLength:{EventLength} DataLength:{DataLength}");
+        ComHosting.Trace($"Source Event:{Event.GetDebugName()} Length:{EventLength} DataLength:{DataLength}");
         BytesReturned = 0;
         return HRESULT.FromWin32(WIN32_ERROR.ERROR_SET_NOT_FOUND);
     }
 
     public HRESULT KsMethod(in KSIDENTIFIER Method, uint MethodLength, nint MethodData, uint DataLength, out uint BytesReturned)
     {
-        ComHosting.Trace($"Property:{Method.GetMFName()} PropertyLength:{MethodLength} DataLength:{DataLength}");
+        ComHosting.Trace($"Source Method:{Method.GetDebugName()} Length:{MethodLength} DataLength:{DataLength}");
         BytesReturned = 0;
         return HRESULT.FromWin32(WIN32_ERROR.ERROR_SET_NOT_FOUND);
     }
 
     public HRESULT KsProperty(in KSIDENTIFIER Property, uint PropertyLength, nint PropertyData, uint DataLength, out uint BytesReturned)
     {
-        ComHosting.Trace($"Property:{Property.GetMFName()} PropertyLength:{PropertyLength} DataLength:{DataLength}");
+        //ComHosting.Trace($"Source Property:{Property.GetDebugName()} Length:{PropertyLength} DataLength:{DataLength}");
         BytesReturned = 0;
         return HRESULT.FromWin32(WIN32_ERROR.ERROR_SET_NOT_FOUND);
     }
 
     HRESULT IMFAttributes.Compare(IMFAttributes? pTheirs, MF_ATTRIBUTES_MATCH_TYPE MatchType, out BOOL pbResult) => ((IMFAttributes)_attributes).Compare(pTheirs, MatchType, out pbResult);
     HRESULT IMFAttributes.CompareItem(in Guid guidKey, in PROPVARIANT Value, out BOOL pbResult) => ((IMFAttributes)_attributes).CompareItem(guidKey, Value, out pbResult);
-    HRESULT IMFAttributes.CopyAllItems(IMFAttributes pDest) => ((IMFAttributes)_attributes).CopyAllItems(pDest);
+    HRESULT IMFAttributes.CopyAllItems(IMFAttributes? pDest) => ((IMFAttributes)_attributes).CopyAllItems(pDest);
     HRESULT IMFAttributes.DeleteAllItems() => ((IMFAttributes)_attributes).DeleteAllItems();
     HRESULT IMFAttributes.DeleteItem(in Guid guidKey) => ((IMFAttributes)_attributes).DeleteItem(guidKey);
     HRESULT IMFAttributes.GetAllocatedBlob(in Guid guidKey, out nint ppBuf, out uint pcbSize) => ((IMFAttributes)_attributes).GetAllocatedBlob(guidKey, out ppBuf, out pcbSize);
@@ -555,4 +569,22 @@ public partial class MediaSource : IMFAttributes, IMFMediaSourceEx, IMFSampleAll
     HRESULT IMFAttributes.SetUINT64(in Guid guidKey, ulong unValue) => ((IMFAttributes)_attributes).SetUINT64(guidKey, unValue);
     HRESULT IMFAttributes.SetUnknown(in Guid guidKey, nint pUnknown) => ((IMFAttributes)_attributes).SetUnknown(guidKey, pUnknown);
     HRESULT IMFAttributes.UnlockStore() => ((IMFAttributes)_attributes).UnlockStore();
+
+    public void Dispose()
+    {
+        ComHosting.Trace();
+        if (_streams != null)
+        {
+            Interlocked.Exchange(ref _streams, null)?.Dispose();
+        }
+
+        if (_attributes != null)
+        {
+            Interlocked.Exchange(ref _attributes, null)?.Dispose();
+        }
+
+        Interlocked.Exchange(ref _queue, null)?.Dispose();
+        Interlocked.Exchange(ref _presentationDescriptor, null)?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 }

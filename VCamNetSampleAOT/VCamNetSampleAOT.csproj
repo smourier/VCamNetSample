@@ -23,7 +23,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="..\VCamNetSampleSource\Shared.cs" Link="Shared.cs" />
+		<Compile Include="..\VCamNetSampleSourceAOT\Shared.cs" Link="Shared.cs" />
 		<Compile Include="..\VCamNetSample\Properties\AssemblyVersionInfo.cs" Link="Properties\AssemblyVersionInfo.cs" />
 	</ItemGroup>
 
@@ -55,7 +55,7 @@
 		<Using Include="System.Runtime.Versioning" />
 		<Using Include="System.Runtime.CompilerServices" />
 		<Using Include="System.Runtime.InteropServices" />
-		<Using Include="VCamNetSampleSource" />
+		<Using Include="VCamNetSampleSourceAOT" />
 	</ItemGroup>
 
 </Project>

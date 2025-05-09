@@ -21,7 +21,7 @@ public class SampleWindow : Window
                 MFVirtualCameraLifetime.MFVirtualCameraLifetime_Session,
                 MFVirtualCameraAccess.MFVirtualCameraAccess_CurrentUser,
                 PWSTR.From(title),
-                PWSTR.From($"{{{Shared.CLSID_VCamNet}}}"),
+                PWSTR.From($"{{{Shared.CLSID_VCamNetAOT}}}"),
                 0,
                 0,
                 out var camera);
@@ -44,12 +44,13 @@ public class SampleWindow : Window
                 td.MainIcon = TaskDialog.TD_INFORMATION_ICON;
             }
 
+            td.Show(Handle);
+
             if (_camera != null)
             {
                 hr = _camera.Object.Remove();
             }
 
-            td.Show(Handle);
             Functions.MFShutdown().ThrowOnError();
             Dispose();
         }, true);

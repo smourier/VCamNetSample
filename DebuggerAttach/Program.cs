@@ -16,6 +16,7 @@ namespace DebuggerAttach
         // note 2: you can configure Frame Server to stay alive if you set the key value NeverShutdown to 1 in
         // HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Media Foundation\FrameServer
         //
+        // note 3: this doesn't seem to work under .NET 9 (???)
         static void Main()
         {
             var name = "VCamNetSample";
