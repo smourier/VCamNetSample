@@ -8,11 +8,12 @@ There are four projects in the solution:
 * **VCamNetSampleSource**: the Media Source that provides RGB32 and NV12 streaming samples.
 * **VCamNetSample**: the "driver" Winforms application that does very little but calls `MFCreateVirtualCamera`.
 * **VCamNetSampleSourceAOT**: the same Media source than the VCamNetSampleSource sample, but as an AOT-compatible project.
-* **VCamNetSampleAOT**: the "driver" application that does very little but calls `MFCreateVirtualCamera`. It's not based on Winforms but on a Win32 Window provided by DirectN AOT.
+* **VCamNetSampleAOT**: the "driver" application that does very little but calls `MFCreateVirtualCamera`.
 
 ## AOT version
-* The AOT version, base on .NET 9, uses [DirectNAOT](https://github.com/smourier/DirectNAot) instead of DirectN.
-* It also uses the [AotNetComHost](https://github.com/smourier/AotNetComHost) project to allow easy development in DEBUG builds.
+* The AOT version, based on .NET 9, uses [DirectNAOT](https://github.com/smourier/DirectNAot) instead of DirectN.
+* VCamNetSampleAOT.exe doesn't use Winforms nor WPF, but a custom Win32 Window provided by DirectN AOT utilities.
+* The VCamNetSampleSourceAOT project uses the [AotNetComHost](https://github.com/smourier/AotNetComHost) project binaries to allow easy development in DEBUG builds. These binaries are not required with RELEASE builds.
 * Since it can be published as AOT, it has zero dependency on .NET (it's self-contained) and can be used directly on Windows 11 w/o any prior setup.
 * AOT and non AOT projects are not compatible (you can't use VCamNetSample with VCamNetSampleSourceAOT, and you can't use VCamNetSampleAOT with VCamNetSampleSource) since they don't use the same CLSID for exposing the virtual camera.
 
@@ -24,7 +25,7 @@ There are four projects in the solution:
 * Run the VCamNetSample.exe Winforms app.
 * Run for example the Windows Camera app or using a Web Browser ImageCapture API
 
-**To test the .NET virtual cam with AOT version**:
+**To test the .NET virtual cam, AOT version**:
 
 * Build in DEBUG or publish for AOT (RELEASE), or download the two pre-built binaries (RELEASE) from the [published releases](https://github.com/smourier/VCamNetSample/releases)
 * In RELEASE, go to the build output and register the media source (a COM object) with a command similar to this: `regsvr32 VCamNetSampleSourceAOT.dll` (you *must* run this as administrator, it' not possible to register a Virtual Camera media source in `HKCU`, only in `HKLM` since it will be loaded by multiple processes)
