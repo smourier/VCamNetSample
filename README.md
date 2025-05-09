@@ -11,8 +11,10 @@ There are four projects in the solution:
 * **VCamNetSampleAOT**: the "driver" application that does very little but calls `MFCreateVirtualCamera`. It's not based on Winforms but on a Win32 Window provided by DirectN AOT.
 
 ## AOT version
-* The AOT version uses [DirectNAOT](https://github.com/smourier/DirectNAot) instead of DirectN.
+* The AOT version, base on .NET 9, uses [DirectNAOT](https://github.com/smourier/DirectNAot) instead of DirectN.
 * It also uses the [AotNetComHost](https://github.com/smourier/AotNetComHost) project to allow easy development in DEBUG builds.
+* Since it can be published as AOT, it has zero dependency on .NET (it's self-contained) and can be used directly on Windows 11 w/o any prior setup.
+* AOT and non AOT projects are not compatible (you can't use VCamNetSample with VCamNetSampleSourceAOT, and you can't use VCamNetSampleAOT with VCamNetSampleSource) since they don't use the same CLSID for exposing the virtual camera.
 
 ## Testing
 **To test the .NET virtual cam**:
