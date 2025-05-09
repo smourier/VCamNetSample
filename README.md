@@ -3,18 +3,31 @@ This solution contains a Media Foundation Virtual Camera Sample developed using 
 
 It's a port of the same project written in C++ **VCamSample**: [https://github.com/smourier/VCamSample](https://github.com/smourier/VCamSample) and it's based on [DirectN](https://github.com/smourier/DirectN) for all DirectX, WIC and Media Foundation interop.
 
-There are two projects in the solution:
+There are four projects in the solution:
 
 * **VCamNetSampleSource**: the Media Source that provides RGB32 and NV12 streaming samples.
-* **VCamNetSample**: the "driver" application that does very little but calls `MFCreateVirtualCamera`.
+* **VCamNetSample**: the "driver" Winforms application that does very little but calls `MFCreateVirtualCamera`.
+* **VCamNetSampleSourceAOT**: the same Media source than the VCamNetSampleSource sample, but as an AOT-compatible project.
+* **VCamNetSampleAOT**: the "driver" application that does very little but calls `MFCreateVirtualCamera`. It's not based on Winforms but on a Win32 Window provided by DirectN AOT.
 
+## AOT version
+* The AOT version uses [DirectNAOT](https://github.com/smourier/DirectNAot) instead of DirectN.
+* It also uses the [AotNetComHost](https://github.com/smourier/AotNetComHost) project to allow easy development in DEBUG builds.
 
-
-To test the .NET virtual cam:
+## Testing
+**To test the .NET virtual cam**:
 
 * Build in debug or release
 * Go to the build output and register the media source (a COM object) with a command similar to this: `regsvr32 VCamNetSampleSource.comhost.dll` (you *must* run this as administrator, it' not possible to register a Virtual Camera media source in `HKCU`, only in `HKLM` since it will be loaded by multiple processes)
-* Run the VCamNetSample app.
+* Run the VCamNetSample.exe Winforms app.
+* Run for example the Windows Camera app or using a Web Browser ImageCapture API
+
+**To test the .NET virtual cam with AOT version**:
+
+* Build in DEBUG or publish for AOT (RELEASE), or download the two pre-built binaries (RELEASE) from the [published releases](https://github.com/smourier/VCamNetSample/releases)
+* In RELEASE, go to the build output and register the media source (a COM object) with a command similar to this: `regsvr32 VCamNetSampleSourceAOT.dll` (you *must* run this as administrator, it' not possible to register a Virtual Camera media source in `HKCU`, only in `HKLM` since it will be loaded by multiple processes)
+* In DEBUG, go to the build output and register the media source (a COM object) with a command similar to this: `regsvr32 VCamNetSampleSourceAOT.comthunk.dll` (you *must* run this as administrator, it' not possible to register a Virtual Camera media source in `HKCU`, only in `HKLM` since it will be loaded by multiple processes)
+* Run the VCamNetSampleAOT.exe app.
 * Run for example the Windows Camera app or using a Web Browser ImageCapture API
 
 You should now see something like this in the Windows Camera App
