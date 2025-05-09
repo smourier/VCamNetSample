@@ -3,18 +3,34 @@ This solution contains a Media Foundation Virtual Camera Sample developed using 
 
 It's a port of the same project written in C++ **VCamSample**: [https://github.com/smourier/VCamSample](https://github.com/smourier/VCamSample) and it's based on [DirectN](https://github.com/smourier/DirectN) for all DirectX, WIC and Media Foundation interop.
 
-There are two projects in the solution:
+There are four projects in the solution:
 
 * **VCamNetSampleSource**: the Media Source that provides RGB32 and NV12 streaming samples.
-* **VCamNetSample**: the "driver" application that does very little but calls `MFCreateVirtualCamera`.
+* **VCamNetSample**: the "driver" Winforms application that does very little but calls `MFCreateVirtualCamera`.
+* **VCamNetSampleSourceAOT**: the same Media source than the VCamNetSampleSource sample, but as an AOT-compatible project.
+* **VCamNetSampleAOT**: the "driver" application that does very little but calls `MFCreateVirtualCamera`.
 
+## AOT version
+* The AOT version, based on .NET 9, uses [DirectNAOT](https://github.com/smourier/DirectNAot) instead of DirectN.
+* VCamNetSampleAOT.exe doesn't use Winforms nor WPF, but a custom Win32 Window provided by DirectN AOT utilities.
+* The VCamNetSampleSourceAOT project uses the [AotNetComHost](https://github.com/smourier/AotNetComHost) project binaries to allow easy development in DEBUG builds. These binaries are not required with RELEASE builds.
+* Since it can be published as AOT, it has zero dependency on .NET (it's self-contained) and can be used directly on Windows 11 w/o any prior setup.
+* AOT and non AOT projects are not compatible (you can't use VCamNetSample with VCamNetSampleSourceAOT, and you can't use VCamNetSampleAOT with VCamNetSampleSource) since they don't use the same CLSID for exposing the virtual camera.
 
-
-To test the .NET virtual cam:
+## Testing
+**To test the .NET virtual cam**:
 
 * Build in debug or release
 * Go to the build output and register the media source (a COM object) with a command similar to this: `regsvr32 VCamNetSampleSource.comhost.dll` (you *must* run this as administrator, it' not possible to register a Virtual Camera media source in `HKCU`, only in `HKLM` since it will be loaded by multiple processes)
-* Run the VCamNetSample app.
+* Run the VCamNetSample.exe Winforms app.
+* Run for example the Windows Camera app or using a Web Browser ImageCapture API
+
+**To test the .NET virtual cam, AOT version**:
+
+* Build in DEBUG or publish for AOT (RELEASE), or download the two pre-built binaries (RELEASE) from the [published releases](https://github.com/smourier/VCamNetSample/releases)
+* In RELEASE, go to the build output and register the media source (a COM object) with a command similar to this: `regsvr32 VCamNetSampleSourceAOT.dll` (you *must* run this as administrator, it' not possible to register a Virtual Camera media source in `HKCU`, only in `HKLM` since it will be loaded by multiple processes)
+* In DEBUG, go to the build output and register the media source (a COM object) with a command similar to this: `regsvr32 VCamNetSampleSourceAOT.comthunk.dll` (you *must* run this as administrator, it' not possible to register a Virtual Camera media source in `HKCU`, only in `HKLM` since it will be loaded by multiple processes)
+* Run the VCamNetSampleAOT.exe app.
 * Run for example the Windows Camera app or using a Web Browser ImageCapture API
 
 You should now see something like this in the Windows Camera App
@@ -44,16 +60,16 @@ Something like this in Teams, yes, this is your avatar :-)
   * The CPU, if no Direct3D environment has been provided. In this case, the RGB to NV12 conversion is done using Media Foundation's [Color Converter DSP](https://learn.microsoft.com/en-us/windows/win32/medfound/colorconverter).
   * If you want to force RGB32 mode, you can change the code in `MediaStream` constructor and set the media types array size to 1 (check comments in the code).
 
-## Troubleshooting "Access Denied" on IMFVirtualCamera::Start method
+## Troubleshooting "Access Denied" on IMFVirtualCamera::Start method (AOT and non AOT versions)
 If you get access denied here, it's probably the same issue as for the native version https://github.com/smourier/VCamSample/issues/1
 
 Here is a summary:
 
-* The COM object that serves as a Virtual Camera Source (here `VCamNetSampleSource.comhost.dll`) must be accessible by the two Windows 11 services **Frame Server** & **Frame Server Monitor** (running as `svchost.exe`).
+* The COM object that serves as a Virtual Camera Source (here `VCamNetSampleSource.comhost.dll` or `VCamNetSampleSourceAOT`) must be accessible by the two Windows 11 services **Frame Server** & **Frame Server Monitor** (running as `svchost.exe`).
 * These two services usually run as *Local Service* & *Local System* credentials respectively.
 * If you compile or build in a directory under your compiling user's root, for example something like `C:\Users\<your login>\source\repos\VCamNetSample\VCamNetSampleSource\bin\Debug\net8.0-windows10.0.22621.0` or somewhere restricted in some way, **it won't work** since these two services will need to access that.
 
-=> So the solution is just to either copy the output directory once built (or downloaded) somewhere where everyone has access and register  `VCamNetSampleSource.comhost.dll` from there, or copy/checkout the whole repo where everyone has access and build and register there.
+=> So the solution is just to either copy the output directory once built (or downloaded) somewhere where everyone has access and register  `VCamNetSampleSource.comhost.dll` or `VCamNetSampleSourceAOT.dll` from there, or copy/checkout the whole repo where everyone has access and build and register there.
 
 ![image](https://github.com/smourier/VCamNetSample/assets/5328574/0c96d30a-c954-4d3f-8c7f-3d723258bd35)
 
