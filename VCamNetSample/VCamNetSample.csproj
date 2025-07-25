@@ -19,7 +19,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="DirectNCore" Version="1.17.2" />
+	  <PackageReference Include="DirectNCore" Version="1.17.3" />
 	</ItemGroup>
 
 	<ItemGroup>
