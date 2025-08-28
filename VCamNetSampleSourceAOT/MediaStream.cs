@@ -100,7 +100,7 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IMFMediaStrea
             allocator.Object.InitializeSampleAllocator(NUM_ALLOCATOR_SAMPLES, type).ThrowOnError();
 
             type.GetGUID(Constants.MF_MT_SUBTYPE, out _format).ThrowOnError();
-            ComHosting.Trace("Format: " + _format.GetConstantName());
+            ComHosting.Trace("Format: " + _format.GetName());
         }
 
         // at this point, set D3D manager may have not been called
@@ -316,7 +316,7 @@ public partial class MediaStream : IMFAttributes, IMFMediaStream2, IMFMediaStrea
 
     public HRESULT QueueEvent(uint type, in Guid extendedType, HRESULT hrStatus, nint value)
     {
-        ComHosting.Trace($"type:{type} extendedType:{extendedType.GetConstantName()} value:{value}");
+        ComHosting.Trace($"type:{type} extendedType:{extendedType.GetName()} value:{value}");
         try
         {
             lock (_lock)

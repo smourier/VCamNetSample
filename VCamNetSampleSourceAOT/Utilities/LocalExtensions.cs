@@ -5,7 +5,7 @@ internal static class LocalExtensions
     public static string GetDebugName(this KSIDENTIFIER id)
     {
         var flags = (KSPROPERTY_TYPE)id.Anonymous.Anonymous.Flags;
-        var str = $"{id.Anonymous.Anonymous.Set.GetConstantName(true)} ({flags}) ";
+        var str = $"{id.Anonymous.Anonymous.Set.GetName()} ({flags}) ";
 
         if (id.Anonymous.Anonymous.Set == Constants.KSPROPERTYSETID_ExtendedCameraControl)
             return str + (KSPROPERTY_CAMERACONTROL_EXTENDED_PROPERTY)id.Anonymous.Anonymous.Id;

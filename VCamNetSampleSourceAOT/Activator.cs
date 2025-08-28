@@ -24,7 +24,7 @@ public partial class Activator : IMFActivate, IMFAttributes
         try
         {
             ppv = 0;
-            ComHosting.Trace($"{riid.GetConstantName()}");
+            ComHosting.Trace($"{riid.GetName()}");
             if (riid == typeof(IMFMediaSourceEx).GUID || riid == typeof(IMFMediaSource).GUID)
             {
                 var source = new MediaSource();
@@ -34,7 +34,7 @@ public partial class Activator : IMFActivate, IMFAttributes
                     return Constants.S_OK;
             }
 
-            ComHosting.Trace($"{riid.GetConstantName()} => E_NOINTERFACE");
+            ComHosting.Trace($"{riid.GetName()} => E_NOINTERFACE");
             return Constants.E_NOINTERFACE;
         }
         catch (Exception e)

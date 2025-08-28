@@ -12,8 +12,8 @@ public partial class MediaSource :
     IDisposable
 {
     private readonly Lock _lock = new();
-    private MFAttributes _attributes; // if we derive from it, C#/WinRT doesn't see it for some reason
-    private MediaStream[] _streams;
+    private readonly MFAttributes _attributes; // if we derive from it, C#/WinRT doesn't see it for some reason
+    private readonly MediaStream[] _streams;
     private ComObject<IMFMediaEventQueue>? _queue;
     private ComObject<IMFPresentationDescriptor>? _presentationDescriptor;
 
@@ -280,7 +280,7 @@ public partial class MediaSource :
 
     public HRESULT QueueEvent(uint type, in Guid extendedType, HRESULT hrStatus, nint value)
     {
-        ComHosting.Trace($"type:{type} extendedType:{extendedType.GetConstantName()} value:{value}");
+        ComHosting.Trace($"type:{type} extendedType:{extendedType.GetName()} value:{value}");
         lock (_lock)
         {
             var queue = _queue;
@@ -513,7 +513,7 @@ public partial class MediaSource :
 
     public HRESULT GetService(in Guid guidService, in Guid riid, out nint ppvObject)
     {
-        ComHosting.Trace($"guidService:{guidService.GetConstantName()} riid:{riid.GetConstantName()}");
+        ComHosting.Trace($"guidService:{guidService.GetName()} riid:{riid.GetName()}");
         ppvObject = 0;
         return Constants.E_NOINTERFACE;
     }
