@@ -11,7 +11,7 @@ There are four projects in the solution:
 * **VCamNetSampleAOT**: the "driver" application that does very little but calls `MFCreateVirtualCamera`.
 
 ## AOT version
-* The AOT version, based on .NET 9, uses [DirectNAOT](https://github.com/smourier/DirectNAot) instead of DirectN.
+* The AOT version, based on .NET 10, uses [DirectNAOT](https://github.com/smourier/DirectNAot) instead of DirectN.
 * VCamNetSampleAOT.exe doesn't use Winforms nor WPF, but a custom Win32 Window provided by DirectN AOT utilities.
 * The VCamNetSampleSourceAOT project uses the [AotNetComHost](https://github.com/smourier/AotNetComHost) project binaries to allow easy development in DEBUG builds. These binaries are not required with RELEASE builds.
 * Since it can be published as AOT, it has zero dependency on .NET (it's self-contained) and can be used directly on Windows 11 w/o any prior setup.
@@ -67,7 +67,7 @@ Here is a summary:
 
 * The COM object that serves as a Virtual Camera Source (here `VCamNetSampleSource.comhost.dll` or `VCamNetSampleSourceAOT`) must be accessible by the two Windows 11 services **Frame Server** & **Frame Server Monitor** (running as `svchost.exe`).
 * These two services usually run as *Local Service* & *Local System* credentials respectively.
-* If you compile or build in a directory under your compiling user's root, for example something like `C:\Users\<your login>\source\repos\VCamNetSample\VCamNetSampleSource\bin\Debug\net8.0-windows10.0.22621.0` or somewhere restricted in some way, **it won't work** since these two services will need to access that.
+* If you compile or build in a directory under your compiling user's root, for example something like `C:\Users\<your login>\source\repos\VCamNetSample\VCamNetSampleSource\bin\Debug\net10.0-windows10.0.22621.0` or somewhere restricted in some way, **it won't work** since these two services will need to access that.
 
 => So the solution is just to either copy the output directory once built (or downloaded) somewhere where everyone has access and register  `VCamNetSampleSource.comhost.dll` or `VCamNetSampleSourceAOT.dll` from there, or copy/checkout the whole repo where everyone has access and build and register there.
 

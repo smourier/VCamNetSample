@@ -6,7 +6,7 @@
 
 [assembly: AssemblyTitle("VCamNetSampleSourceAOT")]
 [assembly: AssemblyDescription("Virtual Web Cam Sample")]
-[assembly: AssemblyCopyright("Copyright (C) 2024-2025 Simon Mourier. All rights reserved.")]
+[assembly: AssemblyCopyright("Copyright (C) 2024-2026 Simon Mourier. All rights reserved.")]
 [assembly: AssemblyCulture("")]
 [assembly: AssemblyCompany("Simon Mourier")]
 [assembly: Guid("5ebfd160-72db-4e52-91ba-bdab313b4de2")]
