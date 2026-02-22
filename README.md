@@ -8,13 +8,13 @@ There are four projects in the solution:
 * **VCamNetSampleSource**: the Media Source that provides RGB32 and NV12 streaming samples.
 * **VCamNetSample**: the "driver" Winforms application that does very little but calls `MFCreateVirtualCamera`.
 * **VCamNetSampleSourceAOT**: the same Media source than the VCamNetSampleSource sample, but as an AOT-compatible project.
-* **VCamNetSampleAOT**: the "driver" application that does very little but calls `MFCreateVirtualCamera`.
+* **VCamNetSampleAOT**: same as VCamSample but as an AOT-compatible project.
 
 ## AOT version
 * The AOT version, based on .NET 10, uses [DirectNAOT](https://github.com/smourier/DirectNAot) instead of DirectN.
 * VCamNetSampleAOT.exe doesn't use Winforms nor WPF, but a custom Win32 Window provided by DirectN AOT utilities.
 * The VCamNetSampleSourceAOT project uses the [AotNetComHost](https://github.com/smourier/AotNetComHost) project binaries to allow easy development in DEBUG builds. These binaries are not required with RELEASE builds.
-* Since it can be published as AOT, it has zero dependency on .NET (it's self-contained) and can be used directly on Windows 11 w/o any prior setup.
+* Since it can be published as AOT, it has zero dependency on .NET (it's self-contained) and can be used directly on Windows 11 w/o any prior (.NET) setup.
 * AOT and non AOT projects are not compatible (you can't use VCamNetSample with VCamNetSampleSourceAOT, and you can't use VCamNetSampleAOT with VCamNetSampleSource) since they don't use the same CLSID for exposing the virtual camera.
 
 ## Testing
@@ -52,10 +52,10 @@ Something like this in Teams, yes, this is your avatar :-)
 ## Notes
 
 * The media source uses `Direct2D` and `DirectWrite` to create images. It will then create Media Foundation samples from these. To create MF samples, it can use:
-  * The GPU, if a Direct3D manager has been provided by the environment. This is the case of the Windows 11 camera app.
-  * The CPU, if no Direct3D environment has been provided. In this case, the media source uses a WIC bitmap as a render target and it then copies the bits over to an MF sample. The ImageCapture API code embedded in Chrome or Edge, Teams, etc. is an example of such a D3D-less environment (but sometimes it uses Direct3D).
+  * The GPU, if a Direct3D manager has been provided by the environment (running app). This is the case of the Windows 11 camera app.
+  * The CPU, if no Direct3D environment has been provided. In this case, the media source uses a WIC bitmap as an off-screen render target and then copies the bits over to an MF sample. The ImageCapture API code embedded in Chrome or Edge, Teams, etc. is an example of such a D3D-less environment (but sometimes it uses Direct3D).
   * If you want to force CPU usage at all times, you can change the code in `MediaStream::SetD3DManager` and put the lines there in comment.
-* The media source provides RGB32 and NV12 formats as most setups prefer the NV12 format. Samples are initially created as RGB32 (Direct2D) and converted to NV12. To convert the samples, the media source uses two ways:
+* The media source provides RGB32 and NV12 formats as most setups/environments prefer the NV12 format. Samples are initially created as RGB32 (Direct2D) and converted to NV12. To convert the samples, the media source uses two ways:
   * The GPU, if a Direct3D manager has been provided, using Media Foundation's [Video Processor MFT](https://learn.microsoft.com/en-us/windows/win32/medfound/video-processor-mft).
   * The CPU, if no Direct3D environment has been provided. In this case, the RGB to NV12 conversion is done using Media Foundation's [Color Converter DSP](https://learn.microsoft.com/en-us/windows/win32/medfound/colorconverter).
   * If you want to force RGB32 mode, you can change the code in `MediaStream` constructor and set the media types array size to 1 (check comments in the code).
@@ -65,9 +65,9 @@ If you get access denied here, it's probably the same issue as for the native ve
 
 Here is a summary:
 
-* The COM object that serves as a Virtual Camera Source (here `VCamNetSampleSource.comhost.dll` or `VCamNetSampleSourceAOT`) must be accessible by the two Windows 11 services **Frame Server** & **Frame Server Monitor** (running as `svchost.exe`).
+* The COM object that serves as a Virtual Camera Source (here `VCamNetSampleSource.comhost.dll` or `VCamNetSampleSourceAOT`) must be accessible by the two Windows 11 services **Frame Server** & **Frame Server Monitor** (both running as `svchost.exe`).
 * These two services usually run as *Local Service* & *Local System* credentials respectively.
-* If you compile or build in a directory under your compiling user's root, for example something like `C:\Users\<your login>\source\repos\VCamNetSample\VCamNetSampleSource\bin\Debug\net10.0-windows10.0.22621.0` or somewhere restricted in some way, **it won't work** since these two services will need to access that.
+* If you compile or build in a directory under your compiling user's root, for example something like `C:\Users\<your login>\source\repos\VCamNetSample\VCamNetSampleSource\bin\Debug\net10.0-windows10.0.22621.0` or somewhere restricted in some way, **it won't work** since these two services *need access* to that.
 
 => So the solution is just to either copy the output directory once built (or downloaded) somewhere where everyone has access and register  `VCamNetSampleSource.comhost.dll` or `VCamNetSampleSourceAOT.dll` from there, or copy/checkout the whole repo where everyone has access and build and register there.
 
