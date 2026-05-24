@@ -209,7 +209,7 @@ public class FrameGenerator : IDisposable
                     }
                     else
                     {
-                        fmt = "RGB32 (GPU)";
+                        fmt = "RGB32 (CPU)";
                     }
                 }
 
