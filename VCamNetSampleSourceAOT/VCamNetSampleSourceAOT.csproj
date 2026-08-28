@@ -27,12 +27,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Reference Include="DirectN">
-			<HintPath>External\DirectN.dll</HintPath>
-		</Reference>
-		<Reference Include="DirectN.Extensions">
-			<HintPath>External\DirectN.Extensions.dll</HintPath>
-		</Reference>
+	  <PackageReference Include="DirectNAot.Extensions" Version="1.6.6" />
 	</ItemGroup>
 
 	<ItemGroup>
