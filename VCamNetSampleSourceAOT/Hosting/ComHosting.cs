@@ -137,8 +137,8 @@ public static partial class ComHosting
         => DllPath;
 #endif
 
-    private const string ClassesRegistryKey = @"Software\Classes";
-    private const string ClsidRegistryKey = ClassesRegistryKey + @"\CLSID";
+    private const string _classesRegistryKey = @"Software\Classes";
+    private const string _clsidRegistryKey = _classesRegistryKey + @"\CLSID";
 
     public static void RegisterInProcessComObject(RegistryKey root, Type type, string assemblyPath, string? threadingModel = null)
     {
@@ -148,7 +148,7 @@ public static partial class ComHosting
 
         threadingModel = threadingModel?.Trim() ?? "Both";
         Trace($"Registering {type.FullName} from {assemblyPath} with threading model '{threadingModel}'...");
-        using var serverKey = EnsureWritableSubKey(root, Path.Combine(ClsidRegistryKey, type.GUID.ToString("B"), "InprocServer32"));
+        using var serverKey = EnsureWritableSubKey(root, Path.Combine(_clsidRegistryKey, type.GUID.ToString("B"), "InprocServer32"));
         serverKey.SetValue(null, assemblyPath);
         serverKey.SetValue("ThreadingModel", threadingModel);
 
@@ -157,11 +157,11 @@ public static partial class ComHosting
         if (att != null && !string.IsNullOrWhiteSpace(att.Value))
         {
             var progid = att.Value.Trim();
-            using var key = EnsureWritableSubKey(root, Path.Combine(ClsidRegistryKey, type.GUID.ToString("B")));
+            using var key = EnsureWritableSubKey(root, Path.Combine(_clsidRegistryKey, type.GUID.ToString("B")));
             using var progIdKey = EnsureWritableSubKey(key, "ProgId");
             progIdKey.SetValue(null, progid);
 
-            using var ckey = EnsureWritableSubKey(root, Path.Combine(ClassesRegistryKey, progid, "CLSID"));
+            using var ckey = EnsureWritableSubKey(root, Path.Combine(_classesRegistryKey, progid, "CLSID"));
             ckey.SetValue(null, type.GUID.ToString("B"));
         }
         Trace($"Registered {type.FullName}.");
@@ -173,7 +173,7 @@ public static partial class ComHosting
         ArgumentNullException.ThrowIfNull(type);
 
         Trace($"Unregistering {type.FullName}...");
-        using var key = root.OpenSubKey(ClsidRegistryKey, true);
+        using var key = root.OpenSubKey(_clsidRegistryKey, true);
         key?.DeleteSubKeyTree(type.GUID.ToString("B"), false);
 
         // ProgId is optional
@@ -181,7 +181,7 @@ public static partial class ComHosting
         if (att != null && !string.IsNullOrWhiteSpace(att.Value))
         {
             var progid = att.Value.Trim();
-            using var ckey = root.OpenSubKey(ClassesRegistryKey, true);
+            using var ckey = root.OpenSubKey(_classesRegistryKey, true);
             ckey?.DeleteSubKeyTree(progid, false);
         }
 
