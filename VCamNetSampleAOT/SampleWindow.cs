@@ -17,11 +17,13 @@ public class SampleWindow : Window
 
             Functions.MFStartup(Constants.MF_VERSION, 0).ThrowOnError();
 
+            using var titleStr = new Pwstr(title);
+            using var sourceIdStr = new Pwstr($"{{{Shared.CLSID_VCamNetAOT}}}");
             var hr = Functions.MFCreateVirtualCamera(MFVirtualCameraType.MFVirtualCameraType_SoftwareCameraSource,
                 MFVirtualCameraLifetime.MFVirtualCameraLifetime_Session,
                 MFVirtualCameraAccess.MFVirtualCameraAccess_CurrentUser,
-                PWSTR.From(title),
-                PWSTR.From($"{{{Shared.CLSID_VCamNetAOT}}}"),
+                titleStr,
+                sourceIdStr,
                 0,
                 0,
                 out var camera);
