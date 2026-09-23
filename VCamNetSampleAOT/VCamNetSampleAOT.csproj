@@ -32,7 +32,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="DirectNAot.Extensions" Version="1.6.8" />
+	  <PackageReference Include="DirectNAot.Extensions" Version="1.7.0" />
 	</ItemGroup>
 
 	<ItemGroup>
