@@ -58,7 +58,8 @@ public partial class MediaSource :
             descriptors[i] = new ComObject<IMFStreamDescriptor>(obj2, false);
         }
 
-        Functions.MFCreatePresentationDescriptor(descriptors.Length, descriptors.Pointer, out var obj3).ThrowOnError();
+        using var pinnedDescriptors = descriptors.Pin();
+        Functions.MFCreatePresentationDescriptor(descriptors.Length, pinnedDescriptors.Pointer, out var obj3).ThrowOnError();
         _presentationDescriptor = new ComObject<IMFPresentationDescriptor>(obj3);
 
         Functions.MFCreateEventQueue(out var queue).ThrowOnError();
